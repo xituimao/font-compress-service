@@ -15,8 +15,8 @@ async function loadBlobClient() {
     if (uploadFunction) return uploadFunction;
     
     try {
-        // 从 Vercel Blob CDN 动态导入上传功能
-        const module = await import('https://unpkg.com/@vercel/blob/dist/client.js');
+        // 使用unpkg中可用的客户端文件路径
+        const module = await import('https://unpkg.com/@vercel/blob/dist/index.js');
         uploadFunction = module.upload;
         return uploadFunction;
     } catch (error) {
