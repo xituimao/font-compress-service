@@ -1,0 +1,18 @@
+{
+  "name": "font-compression-service",
+  "version": "1.0.0",
+  "private": true,
+  "description": "一个简单的字体压缩服务，基于 fontmin，可部署于 Vercel。",
+  "main": "api/compress.js",
+  "scripts": {
+    "start": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "dependencies": {
+    "fontmin": "^0.9.9",
+    "formidable": "^3.5.1"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+} 
