@@ -9,12 +9,10 @@
   "functions": {
     "api/compress.js": {
       "maxDuration": 30,
-      "memory": 512
-    }
-  },
-  "api": {
-    "bodyParser": {
-      "sizeLimit": "20mb"
+      "memory": 512,
+      "bodyParser": {
+        "sizeLimit": "20mb"
+      }
     }
   }
 }
