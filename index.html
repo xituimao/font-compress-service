@@ -3,26 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>字体压缩工具</title>
+    <title>字体压缩服务</title>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: #333;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
+            color: #333;
         }
+        body * {    box-sizing: border-box;}
         h1 {
             text-align: center;
             margin-bottom: 30px;
             color: #2c3e50;
         }
         .container {
-            border: 1px solid #ddd;
-            border-radius: 5px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
         .form-group {
             margin-bottom: 20px;
@@ -32,45 +33,43 @@
             margin-bottom: 8px;
             font-weight: bold;
         }
-        input[type="file"], textarea {
+        textarea {
             width: 100%;
-            padding: 10px;
+            min-height: 100px;
+            padding: 8px;
             border: 1px solid #ddd;
             border-radius: 4px;
-            box-sizing: border-box;
-        }
-        textarea {
-            min-height: 100px;
             resize: vertical;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+        }
+        .file-size-warning {
+            display: none;
+            color: #e74c3c;
+            margin-top: 5px;
+            font-size: 0.9em;
         }
         button {
             background-color: #3498db;
             color: white;
             border: none;
-            padding: 12px 20px;
+            padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
-            width: 100%;
+            transition: background-color 0.3s;
         }
         button:hover {
             background-color: #2980b9;
         }
-        .status {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 4px;
-            display: none;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
         }
         .loading {
             display: none;
@@ -78,109 +77,418 @@
             margin-top: 20px;
         }
         .spinner {
-            display: inline-block;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
             width: 30px;
             height: 30px;
-            border: 3px solid rgba(0,0,0,0.1);
-            border-radius: 50%;
-            border-top-color: #3498db;
-            animation: spin 1s ease-in-out infinite;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
         }
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #e74c3c;
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #e74c3c;
+            border-radius: 4px;
+            background-color: #fadbd8;
+            display: none;
+        }
+        .tips {
+            margin-top: 30px;
+            padding: 15px;
+            background-color: #eaf7fb;
+            border-left: 4px solid #3498db;
+            border-radius: 4px;
+        }
+        .tips h3 {
+            margin-top: 0;
+            color: #2980b9;
+        }
+        .tips ul {
+            padding-left: 20px;
+        }
+        .api-docs {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #6c5ce7;
+        }
+        .code-block {
+            background-color: #282c34;
+            border-radius: 6px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .code-block pre {
+            margin: 0;
+        }
+        .code-block code {
+            color: #e2e2e2;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre;
+        }
+        .preset-chars {
+            margin-top: 15px;
+            background-color: #f0f4f8;
+            padding: 15px;
+            border-radius: 6px;
+        }
+        
+        .preset-chars h4 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 15px;
+            color: #34495e;
+        }
+        
+        .preset-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        @media (min-width: 576px) {
+            .preset-options {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+        
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+        
+        .checkbox-item:hover {
+            background-color: #f8f9fa;
+            border-color: #ccc;
+        }
+        
+        .checkbox-item label {
+            font-weight: normal;
+            margin-bottom: 0;
+            font-size: 14px;
+            white-space: nowrap;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .preset-checkbox {
+            margin: 0;
+            cursor: pointer;
+        }
+        
+        .add-chars-btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .add-chars-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .add-chars-btn:active {
+            background-color: #1c6ea4;
         }
     </style>
 </head>
 <body>
-    <h1>字体压缩工具</h1>
+    <h1>字体压缩服务</h1>
+    
     <div class="container">
-        <form id="fontForm" enctype="multipart/form-data">
+        <form id="compressForm">
             <div class="form-group">
-                <label for="fontFile">选择字体文件 (.ttf, .otf)</label>
+                <label for="fontFile">上传字体文件（TTF/OTF格式）：</label>
                 <input type="file" id="fontFile" name="font" accept=".ttf,.otf" required>
+                <div id="fileSizeWarning" class="file-size-warning">
+                    文件超过20MB，可能会导致处理失败。请尝试使用更小的字体文件。
+                </div>
             </div>
+            
             <div class="form-group">
-                <label for="textInput">要保留的文字 (输入所有需要支持的字符)</label>
-                <textarea id="textInput" name="text" placeholder="例如: 你好世界 Hello World 0123456789" required></textarea>
+                <label for="textInput">需要保留的文字：</label>
+                <textarea id="textInput" name="text" placeholder="输入需要保留的文字，如网站上的所有文字内容..." required></textarea>
+                
+                <div class="preset-chars">
+                    <h4>常用字符集（可多选）：</h4>
+                    <div class="preset-options">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="chinese-numbers" class="preset-checkbox" data-id="cn">
+                            <label for="chinese-numbers">中文数字</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="arabic-numbers" class="preset-checkbox" data-id="an">
+                            <label for="arabic-numbers">阿拉伯数字</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="english-letters" class="preset-checkbox" data-id="el">
+                            <label for="english-letters">英文字母</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="chinese-punctuation" class="preset-checkbox" data-id="cp">
+                            <label for="chinese-punctuation">中文标点</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="english-punctuation" class="preset-checkbox" data-id="ep">
+                            <label for="english-punctuation">英文符号</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="common-chinese" class="preset-checkbox" data-id="cc">
+                            <label for="common-chinese">常用汉字500</label>
+                        </div>
+                    </div>
+                    <button type="button" id="addSelectedChars" class="add-chars-btn">添加所选字符集</button>
+                </div>
             </div>
-            <button type="submit">压缩字体</button>
+            
+            <button type="submit" id="submitBtn">压缩字体</button>
         </form>
         
-        <div class="loading" id="loading">
+        <div id="loading" class="loading">
             <div class="spinner"></div>
-            <p>正在处理，请稍候...</p>
+            <p>正在处理中，请稍候...</p>
         </div>
         
-        <div class="status" id="status"></div>
+        <div id="errorMessage" class="error-message"></div>
+    </div>
+    
+    <div class="tips">
+        <h3>使用提示</h3>
+        <ul>
+            <li>只支持TTF和OTF格式的字体文件</li>
+            <li>建议字体文件大小不要超过20MB，否则可能处理失败</li>
+            <li>文字输入框中填入需要保留的所有文字，如网站上的全部文字内容</li>
+            <li>处理完成后，浏览器会自动下载压缩后的字体文件</li>
+            <li>字体压缩是基于文字子集化，仅保留您指定的文字对应的字形</li>
+        </ul>
+    </div>
+
+    <div class="api-docs">
+        <h3>API调用说明</h3>
+        <p>如需通过API直接调用字体压缩服务，可使用以下方式：</p>
+        <div class="code-block">
+            <pre><code>// 使用fetch或axios等工具发送POST请求
+fetch('/api/compress', {
+  method: 'POST',
+  body: formData  // formData中需包含'font'文件和'text'文本字段
+})
+.then(response => response.blob())
+.then(blob => {
+  // 处理返回的字体文件blob
+});</code></pre>
+        </div>
+        <h4>请求参数</h4>
+        <ul>
+            <li><strong>font</strong>: 字体文件 (TTF/OTF格式，最大20MB)</li>
+            <li><strong>text</strong>: 需要保留的文字字符串</li>
+        </ul>
+        <h4>请求示例 (curl)</h4>
+        <div class="code-block">
+            <pre><code>curl -X POST \
+  -F "font=@path/to/your/font.ttf" \
+  -F "text=你需要保留的文字" \
+  https://your-domain.vercel.app/api/compress \
+  --output compressed-font.ttf</code></pre>
+        </div>
+        <h4>请求示例 (Node.js)</h4>
+        <div class="code-block">
+            <pre><code>const fs = require('fs');
+const FormData = require('form-data');
+const axios = require('axios');
+
+async function compressFont() {
+  const form = new FormData();
+  form.append('font', fs.createReadStream('path/to/your/font.ttf'));
+  form.append('text', '你需要保留的文字');
+
+  const response = await axios.post('https://your-domain.vercel.app/api/compress', form, {
+    headers: {
+      ...form.getHeaders(),
+    },
+    responseType: 'arraybuffer'
+  });
+
+  fs.writeFileSync('compressed-font.ttf', response.data);
+  console.log('字体已压缩并保存');
+}
+
+compressFont().catch(console.error);</code></pre>
+        </div>
+        <h4>响应</h4>
+        <p>成功时返回压缩后的字体文件 (二进制)，失败时返回JSON格式错误信息</p>
     </div>
 
     <script>
-        document.getElementById('fontForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const fontFile = formData.get('font');
-            const text = formData.get('text');
-            
-            if (!fontFile.name || !text) {
-                showStatus('请选择字体文件并输入要保留的文字', 'error');
-                return;
-            }
-            
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('compressForm');
+            const fileInput = document.getElementById('fontFile');
+            const textInput = document.getElementById('textInput');
+            const submitBtn = document.getElementById('submitBtn');
             const loading = document.getElementById('loading');
-            const status = document.getElementById('status');
+            const errorMessage = document.getElementById('errorMessage');
+            const fileSizeWarning = document.getElementById('fileSizeWarning');
             
-            loading.style.display = 'block';
-            status.style.display = 'none';
+            // 字符集定义 - 从HTML移到JavaScript中，避免特殊字符转义问题
+            const cn = '零一二三四五六七八九十百千万亿';
+            const an = '0123456789';
+            const el = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const cp = '！？。，、；：\'\""（）【】《》…—～·';
+            const ep = '!?,.:;+-=_*&^%$#@<>/\\|';
+            const cc = '春夏秋冬东南西北天地人你我他是不了在有和就要这一了我不人在他有为这个上们来到时大地为子中你说生国年着就那和要她出也得里后自以会家可下而过天去能对小多然于心学么之都好看起发当没成只如事把还用第样道想作种开美总从无情己面最女但现前些所同日手又行意动方期它头经长儿回位分爱老因很给名法间斯知世什两次使身者被高已亲其进此话常与活正感见明问力理尔点文几定本公特做外孩相西果走将月十实向声车全信重三机工物气每并别真打太新比才便夫再书部水像眼等才更关应表性气你主题命给制度变海业即画设及管京色强字医建谓何广纪况即组精改较次别住证近失老步断带何城相书号须据系科集且观转什山金资济白需株须铁无氧';
             
-            try {
-                const response = await fetch('/api/compress', {
-                    method: 'POST',
-                    body: formData
+            // 添加所选字符集按钮点击事件
+            document.getElementById('addSelectedChars').addEventListener('click', function() {
+                let currentText = textInput.value;
+                let newCharsAdded = false;
+                
+                // 获取所有选中的字符集
+                document.querySelectorAll('.preset-checkbox:checked').forEach(checkbox => {
+                    const charsetId = checkbox.getAttribute('data-id');
+                    let charsToAdd = '';
+                    
+                    // 根据ID获取相应的字符集
+                    if (charsetId === 'cn') charsToAdd = cn;
+                    else if (charsetId === 'an') charsToAdd = an;
+                    else if (charsetId === 'el') charsToAdd = el;
+                    else if (charsetId === 'cp') charsToAdd = cp;
+                    else if (charsetId === 'ep') charsToAdd = ep;
+                    else if (charsetId === 'cc') charsToAdd = cc;
+                    
+                    if (charsToAdd) {
+                        // 将字符添加到文本框中，避免重复字符
+                        const newChars = Array.from(charsToAdd).filter(char => !currentText.includes(char));
+                        if (newChars.length > 0) {
+                            currentText += newChars.join('');
+                            newCharsAdded = true;
+                        }
+                    }
+                    
+                    // 添加后取消勾选
+                    checkbox.checked = false;
                 });
                 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || '服务器错误');
+                if (newCharsAdded) {
+                    textInput.value = currentText;
+                    textInput.focus();
+                    
+                    // 添加成功提示动画
+                    const addBtn = this;
+                    addBtn.textContent = "已添加✓";
+                    addBtn.disabled = true;
+                    setTimeout(() => {
+                        addBtn.textContent = "添加所选字符集";
+                        addBtn.disabled = false;
+                    }, 1000);
                 }
-                
-                // 获取文件名
-                const contentDisposition = response.headers.get('Content-Disposition');
-                let filename = 'compressed-font.ttf';
-                if (contentDisposition) {
-                    const matches = /filename="([^"]+)"/.exec(contentDisposition);
-                    if (matches && matches[1]) {
-                        filename = matches[1];
+            });
+            
+            // 检查文件大小
+            fileInput.addEventListener('change', function() {
+                if (this.files[0]) {
+                    const fileSize = this.files[0].size / 1024 / 1024; // 转换为MB
+                    if (fileSize > 20) {
+                        fileSizeWarning.style.display = 'block';
+                    } else {
+                        fileSizeWarning.style.display = 'none';
                     }
                 }
+            });
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
                 
-                // 获取 blob 并下载
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
+                // 隐藏之前的错误消息
+                errorMessage.style.display = 'none';
                 
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
+                // 获取表单数据
+                const formData = new FormData(form);
                 
-                showStatus(`字体压缩成功！文件 "${filename}" 已自动下载。`, 'success');
-            } catch (error) {
-                showStatus(`处理失败: ${error.message}`, 'error');
-            } finally {
-                loading.style.display = 'none';
+                // 检查是否有文件
+                if (!fileInput.files[0]) {
+                    showError('请选择字体文件');
+                    return;
+                }
+                
+                // 显示加载状态
+                submitBtn.disabled = true;
+                loading.style.display = 'block';
+                
+                // 发送请求
+                fetch('/api/compress', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        // 尝试读取错误消息
+                        return response.json().then(data => {
+                            throw new Error(data.error || `服务器错误: ${response.status}`);
+                        }).catch(e => {
+                            // 如果无法解析JSON，则使用状态文本
+                            throw new Error(`服务器错误: ${response.status} ${response.statusText}`);
+                        });
+                    }
+                    
+                    // 读取响应头获取文件名
+                    const contentDisposition = response.headers.get('content-disposition');
+                    let filename = 'compressed-font.ttf';
+                    
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?([^"]*)"?/);
+                        if (filenameMatch && filenameMatch[1]) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+                    
+                    // 将响应转换为blob并下载
+                    return response.blob().then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        a.remove();
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showError(error.message || '处理失败，请稍后重试');
+                })
+                .finally(() => {
+                    // 恢复按钮状态并隐藏加载状态
+                    submitBtn.disabled = false;
+                    loading.style.display = 'none';
+                });
+            });
+            
+            function showError(message) {
+                errorMessage.textContent = message;
+                errorMessage.style.display = 'block';
             }
         });
-        
-        function showStatus(message, type) {
-            const statusEl = document.getElementById('status');
-            statusEl.textContent = message;
-            statusEl.className = 'status ' + type;
-            statusEl.style.display = 'block';
-        }
     </script>
 </body>
 </html> 
