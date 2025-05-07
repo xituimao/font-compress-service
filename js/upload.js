@@ -3,8 +3,27 @@
  * 处理文件上传到 Vercel Blob Store 的逻辑
  */
 
-import { upload } from '@vercel/blob/client';
+// 从 unpkg CDN 导入 Vercel Blob 客户端
+// 注意：在生产环境中，最好使用固定版本号而不是 'latest'
 import { updateProgress, showError } from './ui.js';
+
+// 声明上传函数，将在初始化时设置
+let uploadFunction;
+
+// 加载 Vercel Blob 客户端
+async function loadBlobClient() {
+    if (uploadFunction) return uploadFunction;
+    
+    try {
+        // 从 Vercel Blob CDN 动态导入上传功能
+        const module = await import('https://unpkg.com/@vercel/blob/dist/client.js');
+        uploadFunction = module.upload;
+        return uploadFunction;
+    } catch (error) {
+        console.error('Failed to load Vercel Blob client:', error);
+        throw new Error('字体上传SDK加载失败，请检查网络连接。');
+    }
+}
 
 /**
  * 检查文件大小是否超过限制
@@ -27,8 +46,10 @@ export async function uploadFileToBlobStore(file, options = {}) {
         updateProgress(0, true);
         console.log(`Starting upload for ${file.name}...`);
         
+        // 确保上传函数已加载
+        const upload = await loadBlobClient();
+        
         // 模拟上传进度，因为实际上传进度可能无法获取
-        // 在真实场景中，如果能获取到上传进度事件，这里可以替换为实际进度
         const progressInterval = simulateUploadProgress();
         
         const newBlob = await upload(
