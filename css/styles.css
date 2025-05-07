@@ -1,0 +1,279 @@
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    color: #333;
+}
+
+body * {
+    box-sizing: border-box;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #2c3e50;
+}
+
+code {
+    background-color: gainsboro;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+pre > code {
+    background-color: transparent;
+    padding: 0;
+}
+
+.container {
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+textarea {
+    width: 100%;
+    min-height: 100px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    resize: vertical;
+}
+
+input[type="file"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.file-size-warning {
+    display: none;
+    color: #e74c3c;
+    margin-top: 5px;
+    font-size: 0.9em;
+}
+
+button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+button:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+}
+
+.loading {
+    display: none;
+    text-align: center;
+    margin-top: 20px;
+}
+
+.spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #3498db;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error-message {
+    color: #e74c3c;
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #e74c3c;
+    border-radius: 4px;
+    background-color: #fadbd8;
+    display: none;
+}
+
+.success-message {
+    color: #27ae60;
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #27ae60;
+    border-radius: 4px;
+    background-color: #d5f5e3;
+    display: none;
+}
+
+.tips {
+    margin-top: 30px;
+    padding: 15px;
+    background-color: #eaf7fb;
+    border-left: 4px solid #3498db;
+    border-radius: 4px;
+}
+
+.tips h3 {
+    margin-top: 0;
+    color: #2980b9;
+}
+
+.tips ul {
+    padding-left: 20px;
+}
+
+.api-docs {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #6c5ce7;
+}
+
+.code-block {
+    background-color: #282c34;
+    border-radius: 6px;
+    padding: 15px;
+    overflow-x: auto;
+    margin: 15px 0;
+}
+
+.code-block pre {
+    margin: 0;
+}
+
+.code-block code {
+    color: #e2e2e2;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre;
+}
+
+.preset-chars {
+    margin-top: 15px;
+    background-color: #f0f4f8;
+    padding: 15px;
+    border-radius: 6px;
+}
+
+.preset-chars h4 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    font-size: 15px;
+    color: #34495e;
+}
+
+.preset-options {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+@media (min-width: 576px) {
+    .preset-options {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #e0e0e0;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.checkbox-item:hover {
+    background-color: #f8f9fa;
+    border-color: #ccc;
+}
+
+.checkbox-item label {
+    font-weight: normal;
+    margin-bottom: 0;
+    font-size: 14px;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+}
+
+.preset-checkbox {
+    margin: 0;
+    cursor: pointer;
+}
+
+.add-chars-btn {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-chars-btn:hover {
+    background-color: #2980b9;
+}
+
+.add-chars-btn:active {
+    background-color: #1c6ea4;
+}
+
+/* 新增：上传进度显示样式 */
+.upload-progress-container {
+    margin-top: 15px;
+    display: none;
+}
+
+.progress-bar {
+    height: 10px;
+    background-color: #f0f0f0;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background-color: #3498db;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #666;
+    text-align: right;
+} 
