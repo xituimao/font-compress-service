@@ -1,11 +1,5 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/compress.js",
-      "use": "@vercel/node"
-    }
-  ],
   "routes": [
     {
       "src": "/api/compress",
@@ -18,4 +12,4 @@
       "memory": 512
     }
   }
-} 
+}
