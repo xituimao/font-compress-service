@@ -9,10 +9,11 @@
     "deploy": "vercel --prod"
   },
   "dependencies": {
+    "@vercel/blob": "^1.0.1",
     "fontmin": "^0.9.9",
     "formidable": "^3.5.1"
   },
   "engines": {
     "node": "18.x"
   }
-} 
+}

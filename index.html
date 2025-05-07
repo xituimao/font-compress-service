@@ -19,6 +19,15 @@
             margin-bottom: 30px;
             color: #2c3e50;
         }
+        code{
+            background-color: gainsboro;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        pre>code{
+            background-color: transparent;
+            padding: 0;
+        }
         .container {
             background-color: #f9f9f9;
             border-radius: 8px;
@@ -222,7 +231,7 @@
                 <label for="fontFile">上传字体文件（TTF/OTF格式）：</label>
                 <input type="file" id="fontFile" name="font" accept=".ttf,.otf" required>
                 <div id="fileSizeWarning" class="file-size-warning">
-                    文件超过20MB，可能会导致处理失败。请尝试使用更小的字体文件。
+                    文件超过4.5MB (Vercel Hobby套餐限制)，处理可能会失败。建议升级套餐或采用Blob Store方案处理大文件。
                 </div>
             </div>
             
@@ -277,7 +286,7 @@
         <h3>使用提示</h3>
         <ul>
             <li>只支持TTF和OTF格式的字体文件</li>
-            <li>建议字体文件大小不要超过20MB，否则可能处理失败</li>
+            <li>建议字体文件大小不要超过4.5MB (Vercel Hobby套餐限制)，否则可能处理失败。如需处理更大文件，请考虑升级套餐或使用Blob Store方案。</li>
             <li>文字输入框中填入需要保留的所有文字，如网站上的全部文字内容</li>
             <li>处理完成后，浏览器会自动下载压缩后的字体文件</li>
             <li>字体压缩是基于文字子集化，仅保留您指定的文字对应的字形</li>
@@ -285,58 +294,48 @@
     </div>
 
     <div class="api-docs">
-        <h3>API调用说明</h3>
-        <p>如需通过API直接调用字体压缩服务，可使用以下方式：</p>
-        <div class="code-block">
-            <pre><code>// 使用fetch或axios等工具发送POST请求
-fetch('/api/compress', {
-  method: 'POST',
-  body: formData  // formData中需包含'font'文件和'text'文本字段
-})
-.then(response => response.blob())
-.then(blob => {
-  // 处理返回的字体文件blob
-});</code></pre>
-        </div>
-        <h4>请求参数</h4>
+        <h3>API 参考</h3>
+        <p>本部分为希望通过 API 端点直接集成字体压缩服务的开发者提供详细信息。<strong>注意：此 API 配合客户端直接上传文件至 Vercel Blob Store 使用。</strong></p>
+
+        <h4>端点 (Endpoint)</h4>
+        <p><code>POST</code> <code>/api/compress</code></p>
+
+        <h4>请求 (Request)</h4>
+        <p>请求头应包含 <code>Content-Type: application/json</code>。请求体为一个 JSON 对象，包含以下字段：</p>
+        <h5>请求体 JSON 参数:</h5>
         <ul>
-            <li><strong>font</strong>: 字体文件 (TTF/OTF格式，最大20MB)</li>
-            <li><strong>text</strong>: 需要保留的文字字符串</li>
+            <li>
+                <strong><code>blobUrl</code></strong> (string, 必需):
+                字体文件在 Vercel Blob Store 中的完整 URL。客户端应先将字体文件上传到 Blob Store，然后将返回的 URL 传递给此参数。
+            </li>
+            <li>
+                <strong><code>text</code></strong> (string, 必需):
+                一个包含所有应在压缩字体中保留的字符的字符串。
+            </li>
         </ul>
-        <h4>请求示例 (curl)</h4>
+
+        <h4>响应 (Response)</h4>
+        <h5>成功 (<code>200 OK</code>):</h5>
+        <p>压缩后的字体文件以二进制流的形式返回。响应头将包含以下信息：</p>
+        <ul>
+            <li><code>Content-Type</code>: 字体对应的MIME类型 (例如, <code>application/font-ttf</code>, <code>application/font-woff2</code>)。</li>
+            <li><code>Content-Disposition</code>: <code>attachment; filename="compressed-your-font-name.ext"</code>，建议下载时的文件名。</li>
+            <li><code>Content-Length</code>: 压缩后字体文件的大小 (字节)。</li>
+        </ul>
+        <p><em>(未来增强：成功时也可能返回一个包含压缩后文件在 Blob Store 中的 URL 的 JSON 对象，例如 <code>{"compressedBlobUrl": "..."}</code>，具体取决于后端的实现策略。)</em></p>
+        <h5>错误 (<code>4xx</code> 或 <code>5xx</code>):</h5>
+        <p>返回描述错误的 JSON 对象。例如：</p>
         <div class="code-block">
-            <pre><code>curl -X POST \
-  -F "font=@path/to/your/font.ttf" \
-  -F "text=你需要保留的文字" \
-  https://your-domain.vercel.app/api/compress \
-  --output compressed-font.ttf</code></pre>
+            <pre><code>{
+  "error": "这里是具体的错误描述信息"
+}</code></pre>
         </div>
-        <h4>请求示例 (Node.js)</h4>
-        <div class="code-block">
-            <pre><code>const fs = require('fs');
-const FormData = require('form-data');
-const axios = require('axios');
-
-async function compressFont() {
-  const form = new FormData();
-  form.append('font', fs.createReadStream('path/to/your/font.ttf'));
-  form.append('text', '你需要保留的文字');
-
-  const response = await axios.post('https://your-domain.vercel.app/api/compress', form, {
-    headers: {
-      ...form.getHeaders(),
-    },
-    responseType: 'arraybuffer'
-  });
-
-  fs.writeFileSync('compressed-font.ttf', response.data);
-  console.log('字体已压缩并保存');
-}
-
-compressFont().catch(console.error);</code></pre>
-        </div>
-        <h4>响应</h4>
-        <p>成功时返回压缩后的字体文件 (二进制)，失败时返回JSON格式错误信息</p>
+        <p>常见的错误码包括：</p>
+        <ul>
+            <li><code>400 Bad Request</code>: 缺少必需参数 (<code>blobUrl</code> 或 <code>text</code>)，或 `blobUrl` 无效/无法访问。</li>
+            <li><code>405 Method Not Allowed</code>: 请求方法不是 POST。</li>
+            <li><code>500 Internal Server Error</code>: 处理过程中发生意外错误 (例如从 Blob Store 下载文件失败, Fontmin 内部错误等)。</li>
+        </ul>
     </div>
 
     <script>
@@ -407,7 +406,7 @@ compressFont().catch(console.error);</code></pre>
             fileInput.addEventListener('change', function() {
                 if (this.files[0]) {
                     const fileSize = this.files[0].size / 1024 / 1024; // 转换为MB
-                    if (fileSize > 20) {
+                    if (fileSize > 4.5) {
                         fileSizeWarning.style.display = 'block';
                     } else {
                         fileSizeWarning.style.display = 'none';
