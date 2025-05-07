@@ -1,10 +1,6 @@
 import { handleUpload } from '@vercel/blob/client';
 import { NextResponse } from 'next/server'; // Vercel Functions use a similar API to Next.js Edge/Node.js runtime
 
-export const config = {
-  runtime: 'nodejs', // 指定运行时为 nodejs
-};
-
 /**
  * 将上传信息记录到日志
  * @param {object} blob - 上传的blob对象
