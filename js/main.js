@@ -6,7 +6,7 @@
 // 导入模块
 import { charsets, addCharsetsToText } from './charsets.js';
 import { initUI, showError, showSuccess, setLoading, updateProgress, downloadFile, getFilenameFromContentDisposition } from './ui.js';
-import { uploadFileToBlobStore, isFileSizeExceeded, isValidFileType } from './upload.js';
+import { uploadFileToBlobStore, isFileSizeExceeded, isValidFileType } from './upload.js'; // uploadFileToBlobStore 现在使用@vercel/blob/client
 
 // DOM就绪后执行初始化
 document.addEventListener('DOMContentLoaded', init);
@@ -52,11 +52,8 @@ function bindEvents() {
  */
 async function handleFormSubmit(e) {
     e.preventDefault();
-    
-    // 初始状态重置
     showError('');
-    
-    // 检查是否选择了文件
+
     if (!fileInput.files[0]) {
         showError('请选择字体文件');
         return;
@@ -64,30 +61,36 @@ async function handleFormSubmit(e) {
 
     const fontFile = fileInput.files[0];
     const textContent = textInput.value;
-    
-    // 检查文件类型
+
     if (!isValidFileType(fontFile)) {
         showError('只支持TTF和OTF格式的字体文件');
         return;
     }
     
-    // 禁用提交按钮并显示加载指示器
     submitBtn.disabled = true;
     setLoading(true);
+    // updateProgress(0, true); // 进度条由uploadFileToBlobStore内部管理
 
     try {
         // 1. 上传文件到 Blob Store
+        // uploadFileToBlobStore 现在会处理与 /api/upload-font 的交互以及实际的文件上传
         const blobUrl = await uploadFileToBlobStore(fontFile);
         
-        // 显示阶段性成功消息
-        showSuccess('文件已成功上传，正在压缩...');
-        
-        // 2. 准备发送到字体压缩API的数据
+        // 文件上传到Blob成功后，显示消息并准备压缩
+        showSuccess('字体文件已成功上传到Blob Store，正在准备压缩...');
+        // 此时进度条应为100%，因为Blob上传已完成
+
+        // 2. 准备发送到字体压缩API的数据 (只发送URL和文本)
         const payload = {
             blobUrl: blobUrl,
             text: textContent
         };
         
+        console.log('发送到压缩API的数据:', payload);
+        setLoading(true); // 重新显示加载指示器，因为现在是压缩阶段
+        updateProgress(0, true); // 为压缩阶段重置进度条 (如果需要为压缩也模拟进度)
+        let compressionProgressInterval = simulateCompressionProgress(); // 可选：为压缩过程模拟进度
+
         // 3. 调用压缩API
         const response = await fetch('/api/compress', {
             method: 'POST',
@@ -97,15 +100,25 @@ async function handleFormSubmit(e) {
             body: JSON.stringify(payload)
         });
         
+        clearInterval(compressionProgressInterval); // 清除压缩进度模拟
+        updateProgress(100); // 压缩完成，设置进度到100%
+        
         // 4. 处理API响应
         if (!response.ok) {
-            handleApiError(response);
-            return;
+            // 如果响应不是OK，尝试解析错误信息
+            let errorData;
+            try {
+                errorData = await response.json();
+            } catch (jsonError) {
+                // 如果响应体不是有效的JSON，则使用状态文本
+                throw new Error(`压缩服务错误: ${response.status} ${response.statusText}`);
+            }
+            throw new Error(errorData.error || `压缩服务返回错误: ${response.status}`);
         }
         
         // 5. 从响应头获取文件名
         const contentDisposition = response.headers.get('content-disposition');
-        const filename = getFilenameFromContentDisposition(contentDisposition);
+        const filename = getFilenameFromContentDisposition(contentDisposition) || 'compressed-font.ttf';
         
         // 6. 将响应转换为blob并下载
         const blobData = await response.blob();
@@ -121,28 +134,33 @@ async function handleFormSubmit(e) {
         showSuccess(`字体已成功压缩并下载！原始大小: ${stats.originalSize}KB, 压缩后: ${stats.compressedSize}KB (压缩率: ${stats.ratio}%)`);
 
     } catch (error) {
-        console.error('Error during compression process:', error);
+        console.error('处理过程中出错:', error);
         showError(error.message || '处理失败，请检查控制台获取更多信息，或稍后重试');
     } finally {
-        // 恢复按钮状态并隐藏加载指示器
         submitBtn.disabled = false;
         setLoading(false);
-        updateProgress(0, false); // 隐藏进度条
+        updateProgress(0, false); // 最终隐藏进度条
     }
 }
 
+// 可选：为压缩过程模拟进度 (如果压缩过程也比较耗时)
+function simulateCompressionProgress() {
+    let progress = 0;
+    const maxProgress = 95;
+    return setInterval(() => {
+        if (progress < maxProgress) {
+            const increment = Math.max(0.5, (maxProgress - progress) / 10);
+            progress += increment;
+            updateProgress(Math.min(progress, maxProgress));
+        }
+    }, 200);
+}
+
 /**
- * 处理API错误
+ * 处理API错误 (此函数在新的流程中可能不太需要，因为错误处理更具体化了)
  * @param {Response} response - Fetch API响应对象
  */
-async function handleApiError(response) {
-    try {
-        const data = await response.json();
-        throw new Error(data.error || `服务器错误: ${response.status}`);
-    } catch (e) {
-        throw new Error(`服务器错误: ${response.status} ${response.statusText}`);
-    }
-}
+// async function handleApiError(response) { ... } // 可以考虑移除或重构
 
 /**
  * 处理文件选择变化
@@ -151,16 +169,16 @@ function handleFileSelection() {
     if (fileInput.files[0]) {
         const file = fileInput.files[0];
         
-        // 检查文件大小
         if (isFileSizeExceeded(file)) {
             fileSizeWarning.style.display = 'block';
         } else {
             fileSizeWarning.style.display = 'none';
         }
         
-        // 检查文件类型
         if (!isValidFileType(file)) {
             showError('只支持TTF和OTF格式的字体文件');
+        } else {
+            showError(''); // 清除之前的错误信息
         }
     }
 }
@@ -191,7 +209,6 @@ function handleAddSelectedChars() {
         }, 1000);
     }
     
-    // 取消所有复选框的选中状态
     document.querySelectorAll('.preset-checkbox:checked').forEach(checkbox => {
         checkbox.checked = false;
     });

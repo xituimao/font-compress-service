@@ -1,163 +1,156 @@
 /**
  * 字体压缩API - 用于将字体文件按指定文本进行子集化处理
- * 允许用户上传字体文件并指定保留字符，返回压缩后的字体文件
+ * 现在从Vercel Blob Store获取字体文件
  */
-const { IncomingForm } = require('formidable'); // 导入用于解析multipart/form-data的库
-const Fontmin = require('fontmin'); // 导入字体处理库(CJS模块)
-const fs = require('node:fs'); // 用于文件操作(同步)
-const fsp = require('node:fs/promises'); // 用于文件操作(异步Promise版)
-const path = require('node:path'); // 用于路径处理
+const Fontmin = require('fontmin');
+const fs = require('node:fs');
+const fsp = require('node:fs/promises');
+const path = require('node:path');
+const os = require('node:os'); // 用于获取系统临时目录
 
-// Vercel特定配置，为此端点禁用默认的请求体解析
-// 并可能增加超时时间(Hobby计划最大为serverless函数10-15秒)
-module.exports.config = {
-  api: {
-    bodyParser: false, // 禁用默认的请求体解析器
-  },
-};
+// Vercel特定配置
+// module.exports.config = { // 如果不需要特殊配置，可以移除或注释掉
+//   api: {
+//     bodyParser: false, // 如果接收JSON，应为true或移除此行以使用默认解析器
+//   },
+// };
 
-/**
- * 解析表单数据的辅助函数
- * @param {Object} req - 请求对象
- * @returns {Promise<Object>} - 包含字段和文件的对象
- */
-function parseForm(req) {
-  return new Promise((resolve, reject) => {
-    const form = new IncomingForm({
-      keepExtensions: true, // 保留文件扩展名
-      // formidable默认使用os.tmpdir()，在Vercel lambda环境中为/tmp
-    });
-    form.parse(req, (err, fields, files) => {
-      if (err) {
-        return reject(err);
-      }
-      resolve({ fields, files });
-    });
-  });
+async function downloadFileFromBlob(blobUrl, downloadPath) {
+    const response = await fetch(blobUrl);
+    if (!response.ok) {
+        throw new Error(`从Blob Store下载文件失败: ${response.status} ${response.statusText}`);
+    }
+    const fileBuffer = await response.arrayBuffer();
+    await fsp.writeFile(downloadPath, Buffer.from(fileBuffer));
+    console.log(`文件已从 ${blobUrl} 下载到 ${downloadPath}`);
 }
 
-module.exports = async (req, res) => { // Vercel标准CJS导出格式，用于Serverless函数
-  // 仅允许POST请求
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).end('Method Not Allowed');
-  }
-
-  let inputFilePath = null; // 存储上传的字体文件路径
-  let tempOutputDir = null; // 存储临时输出目录路径
-
-  try {
-    // 解析表单数据，包含字体文件和文本
-    const { fields, files } = await parseForm(req);
-
-    const fontFileArray = files.font;
-    const textArray = fields.text;
-
-    const fontFile = fontFileArray && fontFileArray[0]; // 获取上传的字体文件
-    const textToSubset = textArray && textArray[0]; // 获取需要保留的字符
-
-    // 验证必要参数
-    if (!fontFile || !textToSubset) {
-      return res.status(400).json({ error: 'Missing "font" file or "text" parameter in form-data. Ensure "font" is a file and "text" is a string.' });
+module.exports = async (req, res) => {
+    if (req.method !== 'POST') {
+        res.setHeader('Allow', 'POST');
+        return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    inputFilePath = fontFile.filepath; // formidable将上传的文件保存到临时路径
-    const tempDir = path.dirname(inputFilePath); 
-    // 创建临时输出目录
-    tempOutputDir = await fsp.mkdtemp(path.join(tempDir, 'fontmin-output-'));
+    let tempInputDir = null; // 用于存放下载的字体文件
+    let tempOutputDir = null; // 用于存放压缩后的字体文件
+    let downloadedFilePath = null;
 
-    // 配置Fontmin实例
-    const fontminInstance = new Fontmin()
-      .src(inputFilePath) // 设置源字体文件
-      .dest(tempOutputDir) // 设置输出目录
-      .use(Fontmin.glyph({
-        text: textToSubset, // 指定需要保留的字符
-        hinting: false, // 禁用hinting以减小网页字体体积
-      }));
-      // 示例：要输出WOFF2格式，取消下面一行的注释：
-      // .use(Fontmin.ttf2woff2()); 
-      // 如果使用ttf2woff2，确保相应更新输出文件名和Content-Type
-
-    // 执行字体处理
-    await new Promise((resolve, reject) => {
-      fontminInstance.run((runErr, outputFontFiles) => {
-        if (runErr) {
-          return reject(new Error(`Fontmin processing error: ${runErr.message || runErr}`));
+    try {
+        // 确保请求体是JSON
+        if (!req.headers['content-type'] || !req.headers['content-type'].includes('application/json')) {
+            return res.status(400).json({ error: '请求体必须是application/json' });
         }
-        if (!outputFontFiles || outputFontFiles.length === 0) {
-          return reject(new Error('Fontmin did not produce any output files. Check input font (must be TTF/OTF) and characters.'));
+
+        // Vercel Serverless函数会自动解析JSON请求体到req.body
+        const { blobUrl, text: textToSubset } = req.body;
+
+        if (!blobUrl || !textToSubset) {
+            return res.status(400).json({ error: '缺少 "blobUrl" 或 "text" 参数。' });
         }
-        resolve(outputFontFiles);
-      });
-    });
 
-    // 检查处理后的文件
-    const processedDirFiles = await fsp.readdir(tempOutputDir);
-    if (processedDirFiles.length === 0) {
-      throw new Error('No processed font file found in the output directory.');
-    }
-    
-    // 获取处理后的文件
-    const processedFontFileName = processedDirFiles[0]; // 假设只有一个主要输出文件
-    const processedFontPath = path.join(tempOutputDir, processedFontFileName);
-    
-    // 准备输出文件名
-    const originalFileName = fontFile.originalFilename || 'font.ttf'; // 如果原始名称不可用，则使用默认值
-    const baseNameWithoutExt = path.basename(originalFileName, path.extname(originalFileName));
-    const processedFileExt = path.extname(processedFontFileName); // 获取处理后文件的实际扩展名
-    const outputFileName = `compressed-${baseNameWithoutExt}${processedFileExt}`;
-
-    // 设置响应头
-    res.setHeader('Content-Disposition', `attachment; filename="${outputFileName}"`);
-    
-    // 根据文件扩展名设置适当的Content-Type
-    let contentType = 'application/octet-stream'; // 通用回退类型
-    const ext = processedFileExt.toLowerCase();
-    if (ext === '.ttf') contentType = 'application/font-ttf';
-    else if (ext === '.otf') contentType = 'application/font-otf';
-    else if (ext === '.woff') contentType = 'application/font-woff';
-    else if (ext === '.woff2') contentType = 'application/font-woff2';
-    res.setHeader('Content-Type', contentType);
-    
-    // 设置内容长度头
-    const fileStats = await fsp.stat(processedFontPath);
-    res.setHeader('Content-Length', fileStats.size);
-
-    // 创建文件读取流并发送到响应
-    const fileStream = fs.createReadStream(processedFontPath);
-    
-    fileStream.pipe(res);
-    
-    // 等待流处理完成
-    await new Promise((resolveStream, rejectStream) => {
-        fileStream.on('finish', resolveStream);
-        fileStream.on('error', (streamErr) => {
-            console.error('Error during file stream pipe:', streamErr);
-            rejectStream(streamErr); // 这将被外部try/catch捕获
-        });
-        res.on('close', () => { // 处理客户端提前关闭连接
-            if (!fileStream.destroyed) {
-                fileStream.destroy(new Error('Client closed connection prematurely'));
+        // 创建临时目录来存放下载和处理的文件
+        const baseTempDir = os.tmpdir(); // 使用系统临时目录
+        tempInputDir = await fsp.mkdtemp(path.join(baseTempDir, 'font-download-'));
+        tempOutputDir = await fsp.mkdtemp(path.join(baseTempDir, 'fontmin-output-'));
+        
+        // 从blobUrl中提取文件名作为参考，或生成一个唯一文件名
+        let tempFileName = 'downloaded-font';
+        try {
+            const urlPath = new URL(blobUrl).pathname;
+            const decodedPath = decodeURIComponent(urlPath);
+            tempFileName = path.basename(decodedPath);
+             // 清理文件名，防止路径遍历等问题
+            tempFileName = tempFileName.replace(/[^a-zA-Z0-9_.-]/g, '_');
+            if (!tempFileName.match(/\.(otf|ttf)$/i)) {
+                tempFileName += '.ttf'; // 如果没有有效扩展名，默认TTF
             }
-            // 基于数据是否完全发送或是否处于错误状态来解析或拒绝
-            // 为简单起见，这里假设清理将无论如何都会处理
-            resolveStream(); 
-        });
-    });
+        } catch (urlError) {
+            console.warn('无法从blobUrl解析文件名，将使用默认名称:', urlError);
+            // 保持 tempFileName 为 'downloaded-font.ttf' 或根据需要调整
+            if (!tempFileName.match(/\.(otf|ttf)$/i)) tempFileName += '.ttf';
+        }
 
-  } catch (error) {
-    // 错误处理
-    console.error('Font compression request failed:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ error: `Server error: ${error.message}` });
+        downloadedFilePath = path.join(tempInputDir, tempFileName);
+
+        console.log(`准备从 ${blobUrl} 下载字体文件到 ${downloadedFilePath}`);
+        await downloadFileFromBlob(blobUrl, downloadedFilePath);
+        console.log(`字体文件下载完成: ${downloadedFilePath}`);
+
+        const fontminInstance = new Fontmin()
+            .src(downloadedFilePath)
+            .dest(tempOutputDir)
+            .use(Fontmin.glyph({
+                text: textToSubset,
+                hinting: false,
+            }));
+
+        await new Promise((resolve, reject) => {
+            fontminInstance.run((runErr, outputFontFiles) => {
+                if (runErr) {
+                    return reject(new Error(`Fontmin处理错误: ${runErr.message || runErr}`));
+                }
+                if (!outputFontFiles || outputFontFiles.length === 0) {
+                    return reject(new Error('Fontmin没有产生任何输出文件。请检查输入字体(必须是TTF/OTF)和字符。'));
+                }
+                resolve(outputFontFiles);
+            });
+        });
+
+        const processedDirFiles = await fsp.readdir(tempOutputDir);
+        if (processedDirFiles.length === 0) {
+            throw new Error('在输出目录中找不到处理后的字体文件。');
+        }
+        
+        const processedFontFileName = processedDirFiles[0];
+        const processedFontPath = path.join(tempOutputDir, processedFontFileName);
+        
+        const baseNameWithoutExt = path.basename(tempFileName, path.extname(tempFileName));
+        const processedFileExt = path.extname(processedFontFileName);
+        const outputFileName = `compressed-${baseNameWithoutExt}${processedFileExt}`;
+
+        res.setHeader('Content-Disposition', `attachment; filename="${outputFileName}"`);
+        let contentType = 'application/octet-stream';
+        const ext = processedFileExt.toLowerCase();
+        if (ext === '.ttf') contentType = 'application/font-ttf';
+        else if (ext === '.otf') contentType = 'application/font-otf';
+        else if (ext === '.woff') contentType = 'application/font-woff';
+        else if (ext === '.woff2') contentType = 'application/font-woff2';
+        res.setHeader('Content-Type', contentType);
+        
+        const fileStats = await fsp.stat(processedFontPath);
+        res.setHeader('Content-Length', fileStats.size);
+
+        const fileStream = fs.createReadStream(processedFontPath);
+        fileStream.pipe(res);
+        
+        await new Promise((resolveStream, rejectStream) => {
+            fileStream.on('finish', resolveStream);
+            fileStream.on('error', rejectStream);
+            res.on('close', () => {
+                if (!fileStream.destroyed) {
+                    fileStream.destroy(new Error('客户端提前关闭了连接'));
+                }
+                resolveStream(); 
+            });
+        });
+
+    } catch (error) {
+        console.error('字体压缩请求失败:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ error: `服务器错误: ${error.message || '未知错误'}` });
+        }
+    } finally {
+        const cleanupPromises = [];
+        if (downloadedFilePath && tempInputDir) { // 确保只在tempInputDir内删除
+             cleanupPromises.push(fsp.unlink(downloadedFilePath).catch(e => console.warn(`删除下载的临时文件失败: ${downloadedFilePath}`, e.message)));
+        }
+        if (tempInputDir) {
+            cleanupPromises.push(fsp.rm(tempInputDir, { recursive: true, force: true }).catch(e => console.warn(`删除临时输入目录失败: ${tempInputDir}`, e.message)));
+        }
+        if (tempOutputDir) {
+            cleanupPromises.push(fsp.rm(tempOutputDir, { recursive: true, force: true }).catch(e => console.warn(`删除临时输出目录失败: ${tempOutputDir}`, e.message)));
+        }
+        await Promise.all(cleanupPromises);
+        console.log('临时文件和目录清理完毕。');
     }
-  } finally {
-    // 清理临时文件和目录
-    if (inputFilePath) {
-      try { await fsp.unlink(inputFilePath); } catch (e) { console.warn(`Failed to delete temp input file: ${inputFilePath}`, e.message); }
-    }
-    if (tempOutputDir) {
-      try { await fsp.rm(tempOutputDir, { recursive: true, force: true }); } catch (e) { console.warn(`Failed to delete temp output dir: ${tempOutputDir}`, e.message); }
-    }
-  }
 }; 
