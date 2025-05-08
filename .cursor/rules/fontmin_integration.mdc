@@ -1,0 +1,65 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Fontmin 集成
+
+## Fontmin 核心概念
+
+- **Fontmin**: 一个基于 Node.js 的字体子集化和压缩工具库
+- **子集化**: 从字体文件中提取指定字符的字形，减少文件大小
+- **字形处理**: 可以处理字体轮廓、提示信息等
+- **流式处理**: Fontmin 使用流式处理模式，支持管道操作
+
+## 在项目中的应用
+
+- **核心实现**: [api/compress.js](mdc:api/compress.js) 中使用 Fontmin 库进行字体处理
+- **实例化**: 
+  ```javascript
+  const fontminInstance = new Fontmin()
+      .src(downloadedFilePath)
+      .dest(tempOutputDir)
+      .use(Fontmin.glyph({
+          text: textToSubset,
+          hinting: false,
+      }));
+  ```
+
+- **处理流程**:
+  1. 创建 Fontmin 实例并配置源文件和目标目录
+  2. 使用 `Fontmin.glyph()` 插件配置子集化选项
+  3. 通过 `fontminInstance.run()` 执行字体处理
+  4. 处理完成后，从目标目录读取生成的字体文件
+
+## 超时和性能优化
+
+- **超时控制**: 设置 Fontmin 处理的超时限制 (30秒)，防止大字体或大量字符导致的处理卡住
+  ```javascript
+  const FONTMIN_TIMEOUT_MS = 30000; // 30秒
+  fontminTimeout = setTimeout(() => {
+      if (!fontminCompleted) {
+          console.error('Fontmin处理超时');
+          // 处理超时...
+      }
+  }, FONTMIN_TIMEOUT_MS);
+  ```
+
+- **性能考量**:
+  - `hinting: false` 可以关闭字体提示信息，进一步减小文件大小
+  - 临时目录使用系统临时目录，确保跨平台兼容性和性能
+  - 使用流式传输返回处理后的文件，避免内存压力
+
+## 输出文件处理
+
+- **文件类型识别**: 根据输出文件扩展名设置正确的 MIME 类型
+  ```javascript
+  let contentType = 'application/octet-stream';
+  const ext = processedFileExt.toLowerCase();
+  if (ext === '.ttf') contentType = 'application/font-ttf';
+  else if (ext === '.otf') contentType = 'application/font-otf';
+  // 更多类型...
+  ```
+
+- **文件名生成**: 生成包含 "compressed-" 前缀的文件名，保留原始文件扩展名
+- **流式传输**: 使用 `createReadStream` 和管道操作传输文件到响应流

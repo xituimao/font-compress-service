@@ -1,0 +1,34 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 后端架构
+
+## API 端点
+
+- **字体上传处理**: [api/upload-font.js](mdc:api/upload-font.js) 是一个 Vercel Serverless 函数，用于处理客户端的 Blob 上传请求，提供上传令牌。
+- **字体压缩处理**: [api/compress.js](mdc:api/compress.js) 是核心压缩功能的 Vercel Serverless 函数，接收字体文件 URL 和文本，进行子集化处理。
+- **直接上传处理**: [api/direct-upload.js](mdc:api/direct-upload.js) 处理开发环境中的直接文件上传（不经过 Blob Store）。
+
+## 压缩流程
+
+1. [api/compress.js](mdc:api/compress.js) 接收包含 `blobUrl` 和 `text` 参数的 POST 请求
+2. 函数从 `blobUrl` 下载字体文件到临时目录
+3. 使用 Fontmin 库对字体进行子集化处理，只保留 `text` 参数中指定的字符
+4. 将处理后的字体文件作为二进制流返回给客户端
+5. 完成时清理所有临时文件和目录
+
+## 错误处理与超时控制
+
+- **全局超时**: 整个请求处理过程有 45 秒超时限制
+- **下载超时**: 从 Blob Store 下载文件有 15 秒超时
+- **Fontmin 处理超时**: 字体处理有 30 秒超时限制
+- **异常处理**: 各处理阶段都有专门的错误捕获和处理逻辑
+
+## 性能优化
+
+- **Vercel 配置**: [vercel.json](mdc:vercel.json) 中对 Serverless 函数进行配置，提高最大执行时间和内存限制
+- **资源清理**: 在函数完成或出错时，确保清理所有临时文件和目录
+- **连接管理**: 设置响应头 `Connection: close` 防止连接挂起
+- **流式响应**: 使用流式传输向客户端发送处理后的字体文件，避免内存过载

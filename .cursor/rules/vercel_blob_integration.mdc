@@ -1,0 +1,98 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Vercel Blob 集成
+
+## Vercel Blob 概述
+
+- **Vercel Blob**: Vercel 提供的文件存储服务，用于处理大文件上传和存储
+- **优势**: 
+  - 绕过 Serverless 函数的请求体大小限制（默认 4.5MB）
+  - 提供CDN加速和可靠存储
+  - 与 Vercel 平台无缝集成
+- **工作模式**: 客户端先获取上传令牌，然后直接上传到 Blob 存储服务
+
+## 客户端集成
+
+- **核心库**: 使用 `@vercel/blob/client` 的 `upload` 函数 ([js/upload.js](mdc:js/upload.js))
+- **上传流程**:
+  1. 客户端调用 `uploadFileToBlobStore` 函数，传入文件对象
+  2. 函数调用服务器端的 `/api/upload-font` 端点获取上传令牌
+  3. 使用令牌直接上传文件到 Vercel Blob
+  4. 返回上传后的 Blob URL
+  
+  ```javascript
+  const newBlob = await vercelUpload(
+      file.name,
+      file,
+      {
+          access: 'public',
+          handleUploadUrl: '/api/upload-font',
+      }
+  );
+  blobUrl = newBlob.url;
+  ```
+
+## 服务器端集成
+
+- **上传令牌处理**: [api/upload-font.js](mdc:api/upload-font.js) 使用 `@vercel/blob` 的 `handleUpload` 函数
+  ```javascript
+  import { handleUpload } from '@vercel/blob/api';
+  
+  export default async function handler(req, res) {
+    const response = await handleUpload({
+      req,
+      res,
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
+        // 可以在这里进行额外的验证
+        return { allowedContentTypes: ['font/ttf', 'font/otf', ...] };
+      },
+      onUploadCompleted: async ({ blob, pathname }) => {
+        // 上传完成后的回调
+        console.log('上传完成:', blob);
+      },
+    });
+    
+    return response;
+  }
+  ```
+
+- **Blob URL 处理**: [api/compress.js](mdc:api/compress.js) 从 Blob URL 下载字体文件
+  ```javascript
+  async function downloadFileFromBlob(blobUrl, downloadPath) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
+      
+      try {
+          const response = await fetch(blobUrl, { signal: controller.signal });
+          // 下载和处理文件...
+      } finally {
+          clearTimeout(timeoutId);
+      }
+  }
+  ```
+
+## 多环境支持
+
+- **开发环境回退**: 在本地开发环境中提供直接上传选项，避免 Blob 存储依赖
+  ```javascript
+  if (isDevelopment) {
+      try {
+          blobUrl = await promiseWithTimeout(
+              uploadFileDirectly(file),
+              30000,
+              '直接上传字体文件超时...'
+          );
+      } catch (directUploadError) {
+          // 回退到 Vercel Blob...
+      }
+  }
+  ```
+
+## 错误处理和超时控制
+
+- **上传超时**: 为上传操作设置 30 秒超时
+- **下载超时**: 从 Blob 下载文件时设置 15 秒超时
+- **错误反馈**: 针对不同错误情况（超时、网络错误等）提供具体的错误信息

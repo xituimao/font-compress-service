@@ -1,0 +1,60 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 关键工作流程
+
+## 字体上传和压缩流程
+
+### 客户端流程
+
+1. **文件选择和验证**:
+   - 用户从 [index.html](mdc:index.html) 选择字体文件
+   - [js/main.js](mdc:js/main.js) 的 `handleFileSelection` 函数验证文件类型和大小
+   - 大文件显示警告，非支持类型显示错误
+
+2. **文本输入和字符集选择**:
+   - 用户在文本框中输入需要保留的文字
+   - 用户可以通过 [js/charsets.js](mdc:js/charsets.js) 提供的预设字符集快速添加常用字符
+   - `handleAddSelectedChars` 函数处理字符集的添加
+
+3. **表单提交和上传**:
+   - 用户点击"压缩字体"按钮
+   - `handleFormSubmit` 函数处理表单提交
+   - 调用 [js/upload.js](mdc:js/upload.js) 的 `uploadFileToBlobStore` 函数上传文件
+   - 上传过程通过模拟进度条提供视觉反馈
+
+4. **压缩请求和接收**:
+   - 上传完成后，向 `/api/compress` 发送压缩请求
+   - 压缩过程中显示模拟进度
+   - 结果返回后，下载压缩的字体文件并显示统计信息
+
+### 服务器端流程
+
+1. **Blob 上传处理**:
+   - [api/upload-font.js](mdc:api/upload-font.js) 接收客户端的上传请求
+   - 使用 `@vercel/blob` 的 `handleUpload` 函数生成上传令牌
+   - 客户端获取令牌后直接上传到 Vercel Blob Store
+
+2. **字体压缩处理**:
+   - [api/compress.js](mdc:api/compress.js) 接收压缩请求
+   - 从 Blob Store 下载字体文件到临时目录
+   - 使用 Fontmin 库进行子集化处理
+   - 流式返回处理后的字体文件
+   - 清理所有临时文件和目录
+
+## 错误处理和恢复流程
+
+1. **客户端错误处理**:
+   - 文件类型验证失败: 显示错误消息
+   - 文件大小超限: 显示警告但允许继续
+   - 网络错误或超时: 显示具体错误信息
+   - 服务器错误: 解析错误响应并显示
+
+2. **服务器端错误处理**:
+   - 参数验证: 检查必要参数是否存在
+   - 下载超时: 单独控制下载阶段的超时
+   - Fontmin 处理超时: 防止处理过长时间
+   - 全局超时: 确保整个请求不超过最大时间限制
+   - 资源清理: 无论成功或失败都确保清理临时资源

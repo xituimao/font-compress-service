@@ -1,0 +1,36 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# 前端架构
+
+## 主要组件
+
+- **UI 入口**: [index.html](mdc:index.html) 是应用的主要HTML界面，包含字体上传表单和字符集选择界面。
+- **主要逻辑模块**: [js/main.js](mdc:js/main.js) 是前端的核心控制器，负责表单处理、API调用和整体流程控制。
+- **上传处理模块**: [js/upload.js](mdc:js/upload.js) 专门处理字体文件上传到 Vercel Blob Store 的逻辑。
+- **UI工具模块**: [js/ui.js](mdc:js/ui.js) 包含处理DOM操作、显示消息和进度条等UI相关功能。
+- **字符集管理**: [js/charsets.js](mdc:js/charsets.js) 提供预定义字符集和相关处理函数。
+
+## 数据流
+
+1. 用户通过 [index.html](mdc:index.html) 选择字体文件和指定需要保留的文字
+2. [js/main.js](mdc:js/main.js) 的 `handleFormSubmit` 函数处理表单提交
+3. 调用 [js/upload.js](mdc:js/upload.js) 的 `uploadFileToBlobStore` 将字体上传到 Vercel Blob Store
+4. 上传成功后，[js/main.js](mdc:js/main.js) 调用 `/api/compress` 端点进行字体压缩
+5. 压缩结果返回后，[js/main.js](mdc:js/main.js) 使用 [js/ui.js](mdc:js/ui.js) 中的函数下载文件并显示结果
+
+## 前端状态管理
+
+- **加载状态**: 使用 [js/ui.js](mdc:js/ui.js) 中的 `setLoading` 函数控制加载指示器
+- **进度显示**: 上传和压缩过程中的进度反馈通过 [js/ui.js](mdc:js/ui.js) 的 `updateProgress` 函数处理
+- **错误处理**: 使用 [js/ui.js](mdc:js/ui.js) 中的 `showError` 函数显示错误消息
+- **成功反馈**: 通过 [js/ui.js](mdc:js/ui.js) 的 `showSuccess` 函数显示成功消息
+
+## 用户交互优化
+
+- **文件大小检查**: [js/upload.js](mdc:js/upload.js) 的 `isFileSizeExceeded` 函数提供文件大小验证
+- **文件类型验证**: [js/upload.js](mdc:js/upload.js) 的 `isValidFileType` 函数确保上传的是支持的字体格式
+- **字符集快速添加**: [js/main.js](mdc:js/main.js) 的 `handleAddSelectedChars` 函数使用户可以快速添加常用字符集
+- **进度模拟**: 在缺乏实时进度反馈的情况下，使用 `simulateUploadProgress` 和 `simulateCompressionProgress` 函数提供视觉反馈

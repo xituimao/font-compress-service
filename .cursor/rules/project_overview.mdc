@@ -39,3 +39,8 @@ The backend consists of API endpoints implemented as Vercel Serverless Functions
 5.  The client (`js/upload.js`) uploads the file directly to Vercel Blob and receives a `blobUrl`.
 6.  `[js/main.js](mdc:js/main.js)` then sends this `blobUrl` and the subsetting text to `[api/compress.js](mdc:api/compress.js)`.
 7.  `[api/compress.js](mdc:api/compress.js)` downloads the font from `blobUrl`, compresses it using `fontmin`, and streams the result back to the client.
+
+
+## 关键信息
+
+1. vercel 平台限制接口最大只能携带4.5MB；
