@@ -2,6 +2,7 @@
   "name": "font-compression-service",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "一个简单的字体压缩服务，基于 fontmin，可部署于 Vercel。",
   "main": "api/compress.js",
   "scripts": {
