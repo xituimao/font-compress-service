@@ -71,9 +71,12 @@ async function handleFormSubmit(e) {
     setLoading(true);
     // updateProgress(0, true); // 进度条由uploadFileToBlobStore内部管理
 
+    let compressionProgressInterval = null;
+    let compressAbortController = null;
+
     try {
         // 1. 上传文件到 Blob Store
-        // uploadFileToBlobStore 现在会处理与 /api/upload-font 的交互以及实际的文件上传
+        console.log('开始上传字体文件...');
         const blobUrl = await uploadFileToBlobStore(fontFile);
         
         // 文件上传到Blob成功后，显示消息并准备压缩
@@ -88,55 +91,103 @@ async function handleFormSubmit(e) {
         
         console.log('发送到压缩API的数据:', payload);
         setLoading(true); // 重新显示加载指示器，因为现在是压缩阶段
-        updateProgress(0, true); // 为压缩阶段重置进度条 (如果需要为压缩也模拟进度)
-        let compressionProgressInterval = simulateCompressionProgress(); // 可选：为压缩过程模拟进度
+        updateProgress(0, true); // 为压缩阶段重置进度条
+        compressionProgressInterval = simulateCompressionProgress(); // 为压缩过程模拟进度
+
+        // 创建AbortController用于请求超时控制
+        compressAbortController = new AbortController();
+        const timeoutId = setTimeout(() => {
+            if (compressAbortController) {
+                compressAbortController.abort();
+                console.error('压缩请求超时，已中断');
+            }
+        }, 45000); // 45秒超时
 
         // 3. 调用压缩API
-        const response = await fetch('/api/compress', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-        
-        clearInterval(compressionProgressInterval); // 清除压缩进度模拟
-        updateProgress(100); // 压缩完成，设置进度到100%
-        
-        // 4. 处理API响应
-        if (!response.ok) {
-            // 如果响应不是OK，尝试解析错误信息
-            let errorData;
-            try {
-                errorData = await response.json();
-            } catch (jsonError) {
-                // 如果响应体不是有效的JSON，则使用状态文本
-                throw new Error(`压缩服务错误: ${response.status} ${response.statusText}`);
+        console.log('开始调用压缩API...');
+        try {
+            const response = await fetch('/api/compress', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache'
+                },
+                body: JSON.stringify(payload),
+                signal: compressAbortController.signal
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (compressionProgressInterval) {
+                clearInterval(compressionProgressInterval);
+                compressionProgressInterval = null;
             }
-            throw new Error(errorData.error || `压缩服务返回错误: ${response.status}`);
+            updateProgress(100); // 压缩完成，设置进度到100%
+            
+            // 4. 处理API响应
+            if (!response.ok) {
+                // 如果响应不是OK，尝试解析错误信息
+                let errorData;
+                try {
+                    errorData = await response.json();
+                } catch (jsonError) {
+                    // 如果响应体不是有效的JSON，则使用状态文本
+                    throw new Error(`压缩服务错误: ${response.status} ${response.statusText}`);
+                }
+                throw new Error(errorData.error || `压缩服务返回错误: ${response.status}`);
+            }
+            
+            // 5. 从响应头获取文件名
+            const contentDisposition = response.headers.get('content-disposition');
+            const filename = getFilenameFromContentDisposition(contentDisposition) || 'compressed-font.ttf';
+            
+            // 6. 将响应转换为blob并下载
+            console.log('开始下载压缩后的字体文件...');
+            const blobData = await response.blob();
+            downloadFile(blobData, filename);
+            
+            // 7. 显示成功消息
+            const stats = {
+                originalSize: (fontFile.size / 1024).toFixed(1),
+                compressedSize: (blobData.size / 1024).toFixed(1),
+                ratio: (100 * (1 - blobData.size / fontFile.size)).toFixed(1)
+            };
+            
+            showSuccess(`字体已成功压缩并下载！原始大小: ${stats.originalSize}KB, 压缩后: ${stats.compressedSize}KB (压缩率: ${stats.ratio}%)`);
+        } catch (fetchError) {
+            // 处理fetch错误
+            if (fetchError.name === 'AbortError') {
+                throw new Error('压缩请求超时，请尝试减少字符数量或使用较小的字体文件');
+            } else {
+                throw fetchError;
+            }
         }
-        
-        // 5. 从响应头获取文件名
-        const contentDisposition = response.headers.get('content-disposition');
-        const filename = getFilenameFromContentDisposition(contentDisposition) || 'compressed-font.ttf';
-        
-        // 6. 将响应转换为blob并下载
-        const blobData = await response.blob();
-        downloadFile(blobData, filename);
-        
-        // 7. 显示成功消息
-        const stats = {
-            originalSize: (fontFile.size / 1024).toFixed(1),
-            compressedSize: (blobData.size / 1024).toFixed(1),
-            ratio: (100 * (1 - blobData.size / fontFile.size)).toFixed(1)
-        };
-        
-        showSuccess(`字体已成功压缩并下载！原始大小: ${stats.originalSize}KB, 压缩后: ${stats.compressedSize}KB (压缩率: ${stats.ratio}%)`);
-
     } catch (error) {
         console.error('处理过程中出错:', error);
-        showError(error.message || '处理失败，请检查控制台获取更多信息，或稍后重试');
+        
+        // 对于关键错误使用弹窗提示
+        const errorMessage = error.message || '处理失败，请检查控制台获取更多信息，或稍后重试';
+        
+        // 根据错误类型判断是否使用弹窗
+        const isImportantError = 
+            errorMessage.includes('超时') || 
+            errorMessage.includes('timeout') || 
+            errorMessage.includes('failed') || 
+            errorMessage.includes('失败') ||
+            errorMessage.includes('错误') ||
+            errorMessage.includes('error');
+        
+        showError(errorMessage, isImportantError); // 第二个参数为true时使用弹窗
     } finally {
+        // 清理资源
+        if (compressionProgressInterval) {
+            clearInterval(compressionProgressInterval);
+        }
+        if (compressAbortController) {
+            compressAbortController = null;
+        }
+        
         submitBtn.disabled = false;
         setLoading(false);
         updateProgress(0, false); // 最终隐藏进度条

@@ -10,7 +10,10 @@ let elements = {
     loading: null,
     uploadProgress: null,
     progressBarFill: null,
-    progressText: null
+    progressText: null,
+    modalContainer: null,
+    modalContent: null,
+    modalClose: null
 };
 
 /**
@@ -32,28 +35,163 @@ export function initUI() {
     hideElement(elements.successMessage);
     hideElement(elements.loading);
     hideElement(elements.uploadProgress);
+
+    // 创建模态弹窗
+    createModalIfNeeded();
+}
+
+/**
+ * 创建模态弹窗
+ */
+function createModalIfNeeded() {
+    // 如果模态弹窗已存在，则直接返回
+    if (document.getElementById('errorModal')) {
+        elements.modalContainer = document.getElementById('errorModal');
+        elements.modalContent = document.getElementById('errorModalContent');
+        elements.modalClose = document.getElementById('errorModalClose');
+        return;
+    }
+
+    // 创建模态弹窗容器
+    const modal = document.createElement('div');
+    modal.id = 'errorModal';
+    modal.className = 'modal';
+    modal.style.display = 'none';
+    modal.style.position = 'fixed';
+    modal.style.zIndex = '1000';
+    modal.style.left = '0';
+    modal.style.top = '0';
+    modal.style.width = '100%';
+    modal.style.height = '100%';
+    modal.style.backgroundColor = 'rgba(0,0,0,0.4)';
+    modal.style.overflow = 'auto';
+
+    // 创建模态弹窗内容
+    const modalContent = document.createElement('div');
+    modalContent.id = 'errorModalContent';
+    modalContent.className = 'modal-content';
+    modalContent.style.backgroundColor = '#fefefe';
+    modalContent.style.margin = '15% auto';
+    modalContent.style.padding = '20px';
+    modalContent.style.border = '1px solid #888';
+    modalContent.style.borderRadius = '5px';
+    modalContent.style.width = '80%';
+    modalContent.style.maxWidth = '500px';
+    modalContent.style.boxShadow = '0 4px 8px 0 rgba(0,0,0,0.2)';
+
+    // 创建关闭按钮
+    const closeBtn = document.createElement('span');
+    closeBtn.id = 'errorModalClose';
+    closeBtn.className = 'close';
+    closeBtn.innerHTML = '&times;';
+    closeBtn.style.color = '#aaa';
+    closeBtn.style.float = 'right';
+    closeBtn.style.fontSize = '28px';
+    closeBtn.style.fontWeight = 'bold';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.onclick = () => {
+        modal.style.display = 'none';
+    };
+
+    // 组装模态弹窗
+    modalContent.appendChild(closeBtn);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+
+    // 点击模态框外部关闭
+    window.onclick = function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    };
+
+    // 保存元素引用
+    elements.modalContainer = modal;
+    elements.modalContent = modalContent;
+    elements.modalClose = closeBtn;
 }
 
 /**
  * 显示错误消息
  * @param {string} message - 要显示的错误消息
+ * @param {boolean} useModal - 是否以模态弹窗形式显示
  */
-export function showError(message) {
+export function showError(message, useModal = false) {
     if (!elements.errorMessage) initUI();
     elements.errorMessage.textContent = message;
     showElement(elements.errorMessage);
     hideElement(elements.successMessage);
+
+    // 记录到控制台
+    console.error('[ERROR]', message);
+
+    if (useModal && message) {
+        showModal(message, 'error');
+    }
 }
 
 /**
  * 显示成功消息
  * @param {string} message - 要显示的成功消息
+ * @param {boolean} useModal - 是否以模态弹窗形式显示
  */
-export function showSuccess(message) {
+export function showSuccess(message, useModal = false) {
     if (!elements.successMessage) initUI();
     elements.successMessage.textContent = message;
     showElement(elements.successMessage);
     hideElement(elements.errorMessage);
+
+    // 记录到控制台
+    console.log('[SUCCESS]', message);
+    
+    if (useModal && message) {
+        showModal(message, 'success');
+    }
+}
+
+/**
+ * 显示模态弹窗
+ * @param {string} message - 要显示的消息
+ * @param {string} type - 消息类型，'error' 或 'success'
+ */
+export function showModal(message, type = 'error') {
+    if (!elements.modalContainer) createModalIfNeeded();
+
+    // 清除旧内容
+    while (elements.modalContent.childElementCount > 1) {
+        elements.modalContent.removeChild(elements.modalContent.lastChild);
+    }
+
+    // 创建消息内容
+    const h3 = document.createElement('h3');
+    h3.textContent = type === 'error' ? '错误' : '成功';
+    h3.style.color = type === 'error' ? '#e74c3c' : '#27ae60';
+    h3.style.marginTop = '0';
+
+    const p = document.createElement('p');
+    p.textContent = message;
+    p.style.margin = '10px 0';
+
+    const button = document.createElement('button');
+    button.textContent = '确定';
+    button.style.padding = '8px 16px';
+    button.style.backgroundColor = type === 'error' ? '#e74c3c' : '#27ae60';
+    button.style.color = 'white';
+    button.style.border = 'none';
+    button.style.borderRadius = '4px';
+    button.style.cursor = 'pointer';
+    button.style.float = 'right';
+    button.onclick = () => {
+        elements.modalContainer.style.display = 'none';
+    };
+
+    // 添加内容到模态框
+    elements.modalContent.appendChild(h3);
+    elements.modalContent.appendChild(p);
+    elements.modalContent.appendChild(button);
+
+    // 显示模态框
+    elements.modalContainer.style.display = 'block';
 }
 
 /**
