@@ -20,15 +20,5 @@
       "src": "/api/upload-font",
       "dest": "/api/upload-font.js"
     }
-  ],
-  "functions": {
-    "api/compress.js": {
-      "maxDuration": 45,
-      "memory": 1024
-    },
-    "api/upload-font.js": {
-      "maxDuration": 15,
-      "memory": 128
-    }
-  }
+  ]
 }
