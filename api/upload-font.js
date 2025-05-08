@@ -1,4 +1,4 @@
-import { handleUpload, डायरेक्टली } from '@vercel/blob/client';
+import { handleUpload } from '@vercel/blob/client';
 import { NextResponse } from 'next/server'; // Vercel Functions API 类似于 Next.js
 
 export default async function POST(request) {

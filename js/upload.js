@@ -5,27 +5,6 @@
 import { upload as vercelUpload } from '@vercel/blob/client';
 import { updateProgress, showError } from './ui.js';
 
-// 声明上传函数，将在初始化时设置
-let uploadFunction;
-
-// 加载 Vercel Blob 客户端
-async function loadBlobClient() {
-    if (uploadFunction) return uploadFunction;
-    
-    try {
-        // 从全局变量中获取upload函数（通过HTML脚本标签加载）
-        if (window.vercelBlob && typeof window.vercelBlob.upload === 'function') {
-            uploadFunction = window.vercelBlob.upload;
-            return uploadFunction;
-        } else {
-            throw new Error('Vercel Blob客户端未正确加载');
-        }
-    } catch (error) {
-        console.error('Failed to load Vercel Blob client:', error);
-        throw new Error('字体上传SDK加载失败，请检查网络连接。');
-    }
-}
-
 /**
  * 检查文件大小是否超过限制
  * @param {File} file - 要检查的文件

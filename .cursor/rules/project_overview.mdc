@@ -1,0 +1,41 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Project Overview: Font Compress Service
+
+This project is a web-based font compression service deployed on Vercel.
+
+## Frontend
+
+The frontend is served statically and handles user interaction for uploading fonts and specifying text for subsetting.
+
+-   **Main Entry Point**: `[index.html](mdc:index.html)` is the main HTML file that structures the page and includes the necessary CSS and JavaScript.
+-   **Core Client-Side Logic**: `[js/main.js](mdc:js/main.js)` orchestrates the frontend operations, including form submission, calling the upload and compression APIs, and displaying results.
+-   **File Upload Logic**: `[js/upload.js](mdc:js/upload.js)` is responsible for client-side file handling and uploading to Vercel Blob storage. It uses the `upload` function from `@vercel/blob/client`.
+-   **UI Helpers**: `[js/ui.js](mdc:js/ui.js)` contains utility functions for DOM manipulation, displaying messages (errors, successes), and managing UI elements like progress bars.
+-   **Character Sets**: `[js/charsets.js](mdc:js/charsets.js)` provides predefined character sets and functions to manage them.
+-   **Styling**: `[css/styles.css](mdc:css/styles.css)` contains all the styles for the application.
+
+## Backend (Vercel Serverless Functions)
+
+The backend consists of API endpoints implemented as Vercel Serverless Functions.
+
+-   **Font Upload Handling**: `[api/upload-font.js](mdc:api/upload-font.js)` is a Vercel Function that handles requests from the client to prepare for Vercel Blob uploads. It uses the `handleUpload` function from `@vercel/blob/client` to generate secure upload tokens. The client-side `upload` function in `js/upload.js` targets this endpoint.
+-   **Font Compression**: `[api/compress.js](mdc:api/compress.js)` is the core Vercel Function for font compression. It receives a URL to a font file (uploaded to Vercel Blob) and text for subsetting, then uses the `fontmin` library to perform the compression and returns the compressed font file.
+
+## Configuration
+
+-   **Vercel Deployment**: `[vercel.json](mdc:vercel.json)` defines Vercel-specific configurations, including routes for the API functions and function properties like `maxDuration` and `memory`.
+-   **Project Dependencies**: `[package.json](mdc:package.json)` lists project dependencies (like `@vercel/blob`, `fontmin`) and scripts.
+
+## Key Workflow: Font Upload & Compression
+
+1.  User selects a font file and enters text in `[index.html](mdc:index.html)`.
+2.  `[js/main.js](mdc:js/main.js)` calls `uploadFileToBlobStore` in `[js/upload.js](mdc:js/upload.js)`.
+3.  `[js/upload.js](mdc:js/upload.js)` uses `@vercel/blob/client`'s `upload` function, which makes a request to `[api/upload-font.js](mdc:api/upload-font.js)`.
+4.  `[api/upload-font.js](mdc:api/upload-font.js)` uses `@vercel/blob/client`'s `handleUpload` to authorize and prepare the client-side upload, returning a token.
+5.  The client (`js/upload.js`) uploads the file directly to Vercel Blob and receives a `blobUrl`.
+6.  `[js/main.js](mdc:js/main.js)` then sends this `blobUrl` and the subsetting text to `[api/compress.js](mdc:api/compress.js)`.
+7.  `[api/compress.js](mdc:api/compress.js)` downloads the font from `blobUrl`, compresses it using `fontmin`, and streams the result back to the client.

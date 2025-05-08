@@ -6,12 +6,15 @@
   "main": "api/compress.js",
   "scripts": {
     "start": "vercel dev",
+    "build": "esbuild js/main.js --bundle --outfile=public/assets/bundle.js --format=esm --minify",
     "deploy": "vercel --prod"
   },
   "dependencies": {
     "@vercel/blob": "^1.0.1",
-    "fontmin": "^0.9.9",
-    "formidable": "^3.5.1"
+    "fontmin": "^0.9.9"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.4"
   },
   "engines": {
     "node": "18.x"
