@@ -12,8 +12,7 @@
   },
   "dependencies": {
     "@vercel/blob": "^1.0.1",
-    "fontmin": "^0.9.9",
-    "next": "^14.0.0"
+    "fontmin": "^0.9.9"
   },
   "devDependencies": {
     "esbuild": "^0.25.4"
