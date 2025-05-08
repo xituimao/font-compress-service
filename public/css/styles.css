@@ -27,6 +27,11 @@ pre > code {
     background-color: transparent;
     padding: 0;
 }
+pre.code-block{
+    background: gainsboro;
+    padding: 1em;
+    border-radius: 1em;
+}
 
 .container {
     background-color: #f9f9f9;
@@ -40,9 +45,7 @@ pre > code {
 }
 
 label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: bold;
+    display: inline-block;
 }
 
 textarea {
@@ -175,80 +178,61 @@ button:disabled {
     white-space: pre;
 }
 
+/* 字符集模块 */
 .preset-chars {
     margin-top: 15px;
-    background-color: #f0f4f8;
-    padding: 15px;
-    border-radius: 6px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 5px;
 }
 
 .preset-chars h4 {
     margin-top: 0;
-    margin-bottom: 12px;
-    font-size: 15px;
-    color: #34495e;
+    margin-bottom: 10px;
+    font-weight: 600;
 }
 
 .preset-options {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-    margin-bottom: 15px;
-}
-
-@media (min-width: 576px) {
-    .preset-options {
-        grid-template-columns: repeat(3, 1fr);
-    }
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
 }
 
 .checkbox-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    background-color: white;
-    padding: 8px 12px;
-    border-radius: 4px;
-    border: 1px solid #e0e0e0;
-    transition: background-color 0.2s, border-color 0.2s;
-}
-
-.checkbox-item:hover {
-    background-color: #f8f9fa;
-    border-color: #ccc;
-}
-
-.checkbox-item label {
-    font-weight: normal;
-    margin-bottom: 0;
-    font-size: 14px;
-    white-space: nowrap;
-    cursor: pointer;
-    user-select: none;
+    margin-right: 10px;
 }
 
 .preset-checkbox {
-    margin: 0;
-    cursor: pointer;
+    margin-right: 5px;
 }
 
 .add-chars-btn {
-    background-color: #3498db;
+    background-color: #4caf50;
     color: white;
     border: none;
+    padding: 5px 10px;
     border-radius: 4px;
-    padding: 8px 16px;
-    font-size: 14px;
     cursor: pointer;
-    transition: all 0.2s;
+    font-size: 14px;
 }
 
 .add-chars-btn:hover {
-    background-color: #2980b9;
+    background-color: #45a049;
 }
 
-.add-chars-btn:active {
-    background-color: #1c6ea4;
+.add-chars-btn:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
+
+.charset-hint {
+    margin-top: 8px;
+    font-size: 13px;
+    color: #666;
+    font-style: italic;
 }
 
 /* 新增：上传进度显示样式 */
@@ -276,4 +260,66 @@ button:disabled {
     font-size: 12px;
     color: #666;
     text-align: right;
+}
+
+/* 模态窗口样式 */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    overflow: auto;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    max-width: 500px;
+    position: relative;
+}
+
+.close {
+    position: absolute;
+    right: 12px;
+    top: 5px;
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #555;
+}
+
+.link-container {
+    display: flex;
+    margin: 15px 0;
+}
+
+.link-container input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px 0 0 4px;
+    font-size: 14px;
+}
+
+.link-container button {
+    border-radius: 0 4px 4px 0;
+    margin: 0;
+    padding: 8px 15px;
+    font-size: 14px;
+}
+
+#downloadFont {
+    width: 100%;
+    margin-top: 10px;
 } 

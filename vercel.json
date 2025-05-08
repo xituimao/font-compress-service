@@ -23,10 +23,6 @@
     {
       "src": "/api/upload-font",
       "dest": "/api/upload-font.js"
-    },
-    {
-      "src": "/api/direct-upload",
-      "dest": "/api/direct-upload.js"
     }
   ]
 }

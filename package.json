@@ -7,7 +7,7 @@
   "main": "api/compress.js",
   "scripts": {
     "start": "vercel dev",
-    "build": "esbuild js/main.js --bundle --outfile=public/assets/bundle.js --format=esm --minify",
+    "build": "mkdir -p public/assets && esbuild js/main.js --bundle --outfile=public/assets/bundle.js --format=esm --minify",
     "deploy": "vercel --prod"
   },
   "dependencies": {

@@ -1,46 +1,95 @@
 /**
  * 字体压缩API - 用于将字体文件按指定文本进行子集化处理
- * 现在从Vercel Blob Store获取字体文件
  */
 import Fontmin from 'fontmin';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import os from 'node:os'; // 用于获取系统临时目录
-import { fileURLToPath } from 'node:url'; // 如果需要模拟 __dirname 或 __filename
+import os from 'node:os';
+import https from 'node:https';
+import http from 'node:http';
+import { put } from '@vercel/blob';
+
+// 后端预定义字符集
+const BUILTIN_CHARSETS = {
+    // 基础字符集
+    cn: '零一二三四五六七八九十百千万亿', // 中文数字
+    an: '0123456789', // 阿拉伯数字
+    el: 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', // 英文字母
+    cp: '！？。，、；：\'\""（）【】《》…—～·', // 中文标点
+    ep: '!?,.:;+-=_*&^%$#@<>/\\|', // 英文符号
+    cc: '春夏秋冬东南西北天地人你我他是不了在有和就要这一了我不人在他有为这个上们来到时大地为子中你说生国年着就那和要她出也得里后自以会家可下而过天去能对小多然于心学么之都好看起发当没成只如事把还用第样道想作种开美总从无情己面最女但现前些所同日手又行意动方期它头经长儿回位分爱老因很给名法间斯知世什两次使身者被高已亲其进此话常与活正感见明问力理尔点文几定本公特做外孩相西果走将月十实向声车全信重三机工物气每并别真打太新比才便夫再书部水像眼等才更关应表性气你主题命给制度变海业即画设及管京色强字医建谓何广纪况即组精改较次别住证近失老步断带何城相书号须据系科集且观转什山金资济白需株须铁无氧', // 常用汉字500
+    
+    // 新增标准字符集
+    cn1000: '一二三四五六七八九十百千万亿个乙也于以元云专业不世丝两丫严个中丰临为乃久么义之乌乍九书乱乾了予争事二于亏云互五井亚些交亩享京亭亮亲亿什仁仅仆今介仍仓从他付代以众令仪件任企休众优伊伍伏伐休会伞伟伦伯伴伸似但位低住体何余佛作佩你佳使例侍供依侦侧侨侮侯便促俄俊俘保信俭修俱俺倍倒候借假做停健偏值偷傅备傲傻像允充先光克免入八公六兴内全两关兵其具典兹养兼药前剑剪副割力加务动助努劫勃勉勤勺勿包匆北匙匪医匹区匿十千升半协南单卖占卡卫卯印危即卷厂历去县参叉及友双反发叔受变叠叙口古句另叫叭台史右叶号司吃各合吉同名后吐向吓吗君吧吨含听启吴吵吸呆呈告员呜呢周味呵呻和咖咦咧咱咳响哀品哄哎哑哗哟员唱商啊啡啤啥啦啪善喂善喊喘喜喝嗓嗯嘉嘛嘴器四回因困固圆圈国图圳地在场址均坏坐块坚坛坠垂型埋城培基堂堆塔境墨壮声处备复夏外多夜夠够大太央失奇奉奋套奖奥好如妃妄妇妈妙妥妨妹姆姊始姐姑姓委姨姻姿威娃娘娱婆婚婶婿媒嫂嫌子孔字存孩孪孰宁它宅守安宋完宏宗官定宜宝实客宣室宰害家容宿寂寄密富寒寨寸对寻导射尊小少尔尖尚尝尤尸尺尼尾局层居屁展属山岁岔岗岛峰崩嵌川巧差己已巴希帅师帐帘帝带席帮常干平年幸幻幼广庄座庙应店府度座庭康庸廉廊延建式引弹强归当彤彦彬彰影彻往征待律徐徒得御德心必忆忌志忘忙忠快怀态怕怜思急怨总恋恢恨恩恭息恰悄悔悟悦您情惊惑惜想意感愈慈慕慎憾懂戈成或战戏戒戚截户戴所扁扇扎扑扒打托扣扫扬扭扮扯扳扶批找承技抄把抓投抗折披抱抵抹拆拉拌拍拔拖拗招拜拥拦拨拼拾拿持挂指按挑挖挟振捐捕捞损挠挡挣挤挥授挺候挽捉捏捕捡捧据捷掀掃掉掌掘掏掐掠采探接控推措掷描提插握揍援搀搁搂搅搏搜搞搬搭携摄摆摇摊摔摘摧摸撇撑操擒擦支改攻放政故敏教敖救敢散敬数敲文斋料斯新方施旁旅族旗无既旧旨早时昊旺昌明昏易昨昭是星映春昱照显晋晓晚晨普景暂暗暮暴曙曲更曾最有朋服朗望朝期朦木未末本术朱朵机朽杀杂权李材村条来杨杰松板极构林果枣枝枪枯架某染柏柔查柜柯柱标栋栏树样核根格案桃桅框案档桑桔档梁梅梯梳检棋棒棚棵森椅植椭楚楼概榆榜榨榴模樱橙橡次欢欣欧欲款歉歌此步武殊毁毅母毒比毕毗毙毛毯氏民氓气水永汁求汇汉汗江池污汤汰汽沃沙沙沦沧河沿泉法泛波泡泣注泥泰泳洗洛津洪洲活浅测浏流浪浮海消涌涡涯液淡深淹添清渐渔渡温港湖湾源溪滔滚满滴漂演漠漫潮灌火灭灯灰灵炒炮炸点炼烂烈烟烦烧烹焦然照熊熟燕爆爬爱父片版牌牙牛牢物牲牵特牺犯状狂狗独狮狱狼猎猛猜率獸王环现班理琅琉球理琴瑚瑞璃瓜瓶甜生用田由甲申电男画畅界留畜略疏疗疯疲登白百皂的皇皮益盐监盒盖盘盛目直相盾省看県真眼着睛矗矛知短码石矶砸砺砾础硬确礼社祈祝神票祥祯研私秋种科秒秘租积称移稳穆穗穴究空穿突窄窖立站竞竟章童竹等筋筏筐算管箧箭篇簿籍米类粉粗粱精系素索紅紫繁纪约级纵纹线练组绍细织终绘给络绝统绣继绩绪续维综缩缸缺网罕罗罚罩罪署羊美群羹羽翅老考者而耐耕耳耶聊职联聘背胳脊脏脚脱脸腊腰腾臣臧自至致舒舞舞航良色艳芋芙芬花苍苗若苹英范茨茫茬茶草荷莫莱莲获菊菜萄营落着睇睬睹瞧矩石知知码码础祖祖票福穴空窗窥立站章笑笨笛符第等筋答策简管箱范篇簇简簿签籍粉粉粮系系紧约素索紫红纪约级纷纸练细绍织续统绢给络绳结绳维缓缝罚群翠翡翻翼耀考职联肉育背胜胡脉能腕腿臣自至般舰舱艰节芝芦花苏苦英苹茶草荒莱莹获萝落叶葬蒙蓝蔬蕉藏花行着睛硬祝福礼社祟祭禄禅离秀私稻穗空第签简粮粹精糕糖系紧索紫纪约级纷纸练绍织续绣统绩绪续维综编缩缸缺网罢罩置署羊美羽翅翼考者聋职聘肃肆股肢肩肯育肺胃背胯胳脅脊脸脾腐腔腮腰腹腾腿臀臂致舌舍舰舱艰芍花苦英茹荐荒荣莲莹菊落著蓄薇藏虎虑虚虚虫虽虾蚂蛇蛋蜓蜗蜜蜡蝶融螂蟹行衍衣补表袁袋袖被裁裂装裕褐襄西要览觀角解言訓託詠認誓警譬计订训讯计认讲讼论设访证评详语谦谨豪象贝负财贡责贤败货资赏赐赠超越跃跋跌跑距跛跟路跺踊踏踩蹄身躬车轧轮软辀辅辆辈辉辞边辽达过迁迅迈迎运近返还这进远违连迟迹追退送适逊途通逢逸遇遍道違遙遥那邀邦郊部郎郡郭酒里釆重量钟铃链销锁锋锤锦镇長閑闲间闸闻阅阔队防阳阴阵阿际限随险难雄集雏雜雪零雷電霜霞露靠面音響项顺须顾顿颂預頂領頭頻额風飛飞饮饰马駛驱骂骆骑骗骨髓鬥鬧鬼魂魅魔鮮鱼鲜鳄鸟鸡鹰黄黎黑鼓鼠鼻齐',
+    tech: '` ~ ! @ # $ % ^ & * ( ) _ + - = { } [ ] | \\ : ; " \' < > , . ? / \u2318 \u2325 \u2303 \u2388 \u2380 \u238B \u21E7 \u21E5 \u2190 \u2191 \u2192 \u2193 \u21E4 \u21E6 \u21E8 \u21E9 \u25B2 \u25BC \u25C0 \u25B6 \u25D6 \u25D7 \u25CF \u25CB \u25A0 \u25A1 \u25A2 \u25A3 \u25E0 \u25E1 \u25F0 \u25F1 \u25F2 \u25F3 \u25F4 \u25F5 \u25F6 \u25F7 \u25F8 \u25F9 \u25FA \u25FB \u25FC \u25FD \u25FE \u25FF'  // 技术符号
+};
 
 // 下载文件超时设置
-const DOWNLOAD_TIMEOUT_MS = 15000; // 15秒
+const DOWNLOAD_TIMEOUT_MS = 30000; // 30秒
 
-async function downloadFileFromBlob(blobUrl, downloadPath) {
-    // 添加超时处理
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), DOWNLOAD_TIMEOUT_MS);
+/**
+ * 从指定URL下载文件到本地路径
+ * @param {string} url - 文件URL
+ * @param {string} destination - 本地保存路径
+ * @returns {Promise<void>}
+ */
+async function downloadFile(url, destination) {
+    console.log(`开始从URL下载文件: ${url}`);
     
-    try {
-        const response = await fetch(blobUrl, { 
-            signal: controller.signal 
+    return new Promise((resolve, reject) => {
+        // 选择HTTP或HTTPS模块
+        const httpModule = url.startsWith('https:') ? https : http;
+        
+        // 创建请求，设置超时
+        const request = httpModule.get(url, { timeout: DOWNLOAD_TIMEOUT_MS }, (response) => {
+            // 检查状态码
+            if (response.statusCode < 200 || response.statusCode >= 300) {
+                return reject(new Error(`下载失败，状态码: ${response.statusCode}`));
+            }
+            
+            // 创建文件写入流
+            const file = fs.createWriteStream(destination);
+            
+            // 处理文件写入错误
+            file.on('error', (err) => {
+                fs.unlink(destination, () => {});
+                reject(err);
+            });
+            
+            // 将响应管道到文件
+            response.pipe(file);
+            
+            // 文件下载完成
+            file.on('finish', () => {
+                file.close();
+                console.log(`文件下载完成，保存到: ${destination}`);
+                resolve();
+            });
         });
         
-        if (!response.ok) {
-            throw new Error(`从Blob Store下载文件失败: ${response.status} ${response.statusText}`);
-        }
+        // 处理请求错误
+        request.on('error', (err) => {
+            fs.unlink(destination, () => {});
+            reject(err);
+        });
         
-        const fileBuffer = await response.arrayBuffer();
-        await fsp.writeFile(downloadPath, Buffer.from(fileBuffer));
-        console.log(`文件已从 ${blobUrl} 下载到 ${downloadPath}`);
-    } finally {
-        clearTimeout(timeoutId);
-    }
+        // 处理超时
+        request.on('timeout', () => {
+            request.destroy();
+            fs.unlink(destination, () => {});
+            reject(new Error(`下载文件超时（${DOWNLOAD_TIMEOUT_MS}ms）`));
+        });
+    });
 }
 
-export default async (req, res) => { // 使用 export default
+export default async (req, res) => {
     // 设置响应头，防止连接挂起
     res.setHeader('Connection', 'close');
     
     if (req.method !== 'POST') {
         res.setHeader('Allow', 'POST');
-        return res.status(405).json({ error: 'Method Not Allowed' });
+        return res.status(405).json({ error: '只允许POST请求' });
     }
 
     let tempInputDir = null;
@@ -49,7 +98,7 @@ export default async (req, res) => { // 使用 export default
     let fontminTimeout = null;
     
     // 设置整体超时
-    const GLOBAL_TIMEOUT_MS = 45000; // 45秒
+    const GLOBAL_TIMEOUT_MS = 60000; // 60秒
     const abortController = new AbortController();
     const globalTimeoutId = setTimeout(() => {
         console.log('请求处理超时，正在中断操作...');
@@ -89,10 +138,35 @@ export default async (req, res) => { // 使用 export default
             return res.status(400).json({ error: '请求体必须是application/json' });
         }
 
-        const { blobUrl, text: textToSubset } = req.body;
+        // 统一使用url参数（兼容旧的blobUrl、fontUrl）
+        const { url, blobUrl, fontUrl: remoteUrl, text: userText, charsets: charsetIds = [] } = req.body;
+        const fontUrl = url || blobUrl || remoteUrl;
 
-        if (!blobUrl || !textToSubset) {
-            return res.status(400).json({ error: '缺少 "blobUrl" 或 "text" 参数。' });
+        if (!fontUrl || (!userText && (!Array.isArray(charsetIds) || charsetIds.length === 0))) {
+            return res.status(400).json({ error: '缺少 "url" 参数或未提供文本/字符集。' });
+        }
+
+        // 合并用户提供的文本和选择的字符集
+        let textToSubset = userText || '';
+        
+        // 处理内置字符集
+        if (Array.isArray(charsetIds) && charsetIds.length > 0) {
+            console.log(`处理内置字符集: ${charsetIds.join(', ')}`);
+            for (const id of charsetIds) {
+                if (BUILTIN_CHARSETS[id]) {
+                    // 添加字符集中未包含在用户文本中的字符
+                    const charsetText = BUILTIN_CHARSETS[id];
+                    const charsToAdd = Array.from(charsetText)
+                      .filter(char => !textToSubset.includes(char));
+                    
+                    textToSubset += charsToAdd.join('');
+                    console.log(`添加字符集 ${id}: 新增 ${charsToAdd.length} 个字符`);
+                }
+            }
+        }
+
+        if (!textToSubset || textToSubset.length === 0) {
+            return res.status(400).json({ error: '无有效文本进行压缩。请提供文本或有效的字符集ID。' });
         }
 
         // 创建临时目录来存放下载和处理的文件
@@ -100,10 +174,10 @@ export default async (req, res) => { // 使用 export default
         tempInputDir = await fsp.mkdtemp(path.join(baseTempDir, 'font-download-'));
         tempOutputDir = await fsp.mkdtemp(path.join(baseTempDir, 'fontmin-output-'));
         
-        // 从blobUrl中提取文件名作为参考，或生成一个唯一文件名
-        let tempFileName = 'downloaded-font';
+        // 从URL中提取文件名
+        let tempFileName = 'font';
         try {
-            const urlPath = new URL(blobUrl).pathname;
+            const urlPath = new URL(fontUrl).pathname;
             const decodedPath = decodeURIComponent(urlPath);
             tempFileName = path.basename(decodedPath);
             tempFileName = tempFileName.replace(/[^a-zA-Z0-9_.-]/g, '_');
@@ -111,14 +185,14 @@ export default async (req, res) => { // 使用 export default
                 tempFileName += '.ttf';
             }
         } catch (urlError) {
-            console.warn('无法从blobUrl解析文件名，将使用默认名称:', urlError);
+            console.warn('无法从URL解析文件名，将使用默认名称:', urlError);
             if (!tempFileName.match(/\.(otf|ttf)$/i)) tempFileName += '.ttf';
         }
 
         downloadedFilePath = path.join(tempInputDir, tempFileName);
 
-        console.log(`准备从 ${blobUrl} 下载字体文件到 ${downloadedFilePath}`);
-        await downloadFileFromBlob(blobUrl, downloadedFilePath);
+        console.log(`准备从 ${fontUrl} 下载字体文件到 ${downloadedFilePath}`);
+        await downloadFile(fontUrl, downloadedFilePath);
         console.log(`字体文件下载完成: ${downloadedFilePath}`);
 
         // 增加 Fontmin 处理超时
@@ -171,39 +245,24 @@ export default async (req, res) => { // 使用 export default
         const processedFileExt = path.extname(processedFontFileName);
         const outputFileName = `compressed-${baseNameWithoutExt}${processedFileExt}`;
 
-        res.setHeader('Content-Disposition', `attachment; filename="${outputFileName}"`);
-        let contentType = 'application/octet-stream';
-        const ext = processedFileExt.toLowerCase();
-        if (ext === '.ttf') contentType = 'application/font-ttf';
-        else if (ext === '.otf') contentType = 'application/font-otf';
-        else if (ext === '.woff') contentType = 'application/font-woff';
-        else if (ext === '.woff2') contentType = 'application/font-woff2';
-        res.setHeader('Content-Type', contentType);
+        // 读取压缩后的文件
+        const fileContent = await fsp.readFile(processedFontPath);
         
-        const fileStats = await fsp.stat(processedFontPath);
-        res.setHeader('Content-Length', fileStats.size);
+        // 上传到存储服务并获取URL
+        const blob = await put(outputFileName, fileContent, {
+            access: 'public',
+            contentType: processedFileExt === '.ttf' ? 'application/font-ttf' : 
+                       processedFileExt === '.otf' ? 'application/font-otf' : 
+                       'application/octet-stream'
+        });
 
-        // 使用管道流返回文件
-        const fileStream = fs.createReadStream(processedFontPath);
-        
-        // 改进文件流处理
-        fileStream.on('error', (streamErr) => {
-            console.error('文件流处理错误:', streamErr);
-            if (!res.headersSent) {
-                res.status(500).json({ error: `文件流错误: ${streamErr.message}` });
-            }
-            fileStream.destroy();
+        // 返回压缩后的字体文件链接
+        res.status(200).json({
+            success: true,
+            fontName: outputFileName,
+            fileSize: fileContent.length,
+            downloadUrl: blob.url
         });
-        
-        // 当响应结束或客户端断开连接时，确保清理资源
-        res.on('close', () => {
-            if (!fileStream.destroyed) {
-                fileStream.destroy();
-            }
-        });
-        
-        // 启动流传输
-        fileStream.pipe(res);
         
     } catch (error) {
         console.error('字体压缩请求失败:', error);
@@ -214,7 +273,7 @@ export default async (req, res) => { // 使用 export default
         // 清除全局超时
         clearTimeout(globalTimeoutId);
         
-        // 清理临时资源
+        // 清理临时文件和目录
         await cleanup();
     }
 }; 

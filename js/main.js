@@ -5,7 +5,7 @@
 
 // 导入模块
 import { charsets, addCharsetsToText } from './charsets.js';
-import { initUI, showError, showSuccess, setLoading, updateProgress, downloadFile, getFilenameFromContentDisposition } from './ui.js';
+import { initUI, showError, showSuccess, setLoading, updateProgress, downloadFile, getFilenameFromContentDisposition, showLinkModal } from './ui.js';
 import { uploadFileToBlobStore, isFileSizeExceeded, isValidFileType } from './upload.js'; // uploadFileToBlobStore 现在使用@vercel/blob/client
 
 // DOM就绪后执行初始化
@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 // 全局变量，用于存储DOM元素引用
 let form, fileInput, textInput, submitBtn, fileSizeWarning;
+let resultModal, resultLink, copyLinkBtn, downloadBtn, closeBtn;
 
 /**
  * 初始化应用
@@ -28,8 +29,18 @@ function init() {
     submitBtn = document.getElementById('submitBtn');
     fileSizeWarning = document.getElementById('fileSizeWarning');
     
+    // 获取模态窗口元素
+    resultModal = document.getElementById('resultModal');
+    resultLink = document.getElementById('resultLink');
+    copyLinkBtn = document.getElementById('copyLink');
+    downloadBtn = document.getElementById('downloadFont');
+    closeBtn = document.querySelector('.close');
+    
     // 绑定事件处理程序
     bindEvents();
+    
+    // 检查URL参数并处理
+    checkUrlParameters();
 }
 
 /**
@@ -44,6 +55,162 @@ function bindEvents() {
     
     // 监听字符集添加按钮点击
     document.getElementById('addSelectedChars').addEventListener('click', handleAddSelectedChars);
+    
+    // 模态窗口事件绑定
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            resultModal.style.display = 'none';
+        });
+    }
+    
+    if (copyLinkBtn) {
+        copyLinkBtn.addEventListener('click', () => {
+            resultLink.select();
+            document.execCommand('copy');
+            copyLinkBtn.textContent = '已复制!';
+            setTimeout(() => {
+                copyLinkBtn.textContent = '复制链接';
+            }, 2000);
+        });
+    }
+    
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', () => {
+            if (resultLink.value) {
+                window.open(resultLink.value, '_blank');
+            }
+        });
+    }
+    
+    // 点击模态窗口外部关闭
+    window.addEventListener('click', (e) => {
+        if (e.target === resultModal) {
+            resultModal.style.display = 'none';
+        }
+    });
+    
+    // 监听postMessage
+    window.addEventListener('message', (e) => {
+        try {
+            const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+            if (data.type === 'font-compressed' && data.downloadUrl) {
+                showCompressResult(data.downloadUrl, data.fontName, data.fileSize);
+            }
+        } catch (error) {
+            console.error('处理postMessage时出错:', error);
+        }
+    });
+}
+
+/**
+ * 检查URL参数并处理
+ */
+function checkUrlParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fontUrl = urlParams.get('fontUrl');
+    const text = urlParams.get('text');
+    
+    if (fontUrl) {
+        // 如果有URL参数，执行远程字体处理
+        if (text) {
+            processRemoteFont(fontUrl, text);
+        } else {
+            showError('URL参数中缺少text参数');
+        }
+    }
+}
+
+/**
+ * 处理远程字体
+ * @param {string} fontUrl - 远程字体URL
+ * @param {string} text - 需要保留的文字
+ */
+async function processRemoteFont(fontUrl, text) {
+    showError('');
+    submitBtn.disabled = true;
+    setLoading(true);
+    
+    try {
+        // 获取选中的字符集ID
+        const selectedCharsetIds = Array.from(
+            document.querySelectorAll('.preset-checkbox:checked')
+        ).map(checkbox => checkbox.getAttribute('data-id'));
+        
+        // 1. 准备发送到字体压缩API的数据
+        const payload = {
+            url: fontUrl,
+            text: text,
+            charsets: selectedCharsetIds // 添加字符集ID数组
+        };
+        
+        console.log('发送到压缩API的数据:', payload);
+        
+        // 2. 调用字体压缩API
+        console.log('开始调用字体压缩API...');
+        const response = await fetch('/api/compress', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        // 3. 处理API响应
+        if (!response.ok) {
+            let errorData;
+            try {
+                errorData = await response.json();
+            } catch (jsonError) {
+                throw new Error(`压缩服务错误: ${response.status} ${response.statusText}`);
+            }
+            throw new Error(errorData.error || `压缩服务返回错误: ${response.status}`);
+        }
+        
+        // 4. 获取压缩结果
+        const result = await response.json();
+        
+        if (result.success && result.downloadUrl) {
+            // 5. 显示成功消息和结果模态窗口
+            showSuccess('字体已成功压缩！');
+            showCompressResult(result.downloadUrl, result.fontName, result.fileSize);
+            
+            // 6. 发送postMessage通知父窗口
+            if (window.opener || window.parent !== window) {
+                const message = {
+                    type: 'font-compressed',
+                    downloadUrl: result.downloadUrl,
+                    fontName: result.fontName,
+                    fileSize: result.fileSize
+                };
+                window.opener?.postMessage(JSON.stringify(message), '*');
+                if (window.parent !== window) {
+                    window.parent.postMessage(JSON.stringify(message), '*');
+                }
+            }
+        } else {
+            throw new Error('压缩失败，未返回有效的下载URL');
+        }
+    } catch (error) {
+        console.error('远程字体处理过程中出错:', error);
+        showError(error.message || '处理失败，请检查控制台获取更多信息，或稍后重试');
+    } finally {
+        submitBtn.disabled = false;
+        setLoading(false);
+    }
+}
+
+/**
+ * 显示压缩结果模态窗口
+ * @param {string} downloadUrl - 下载链接
+ * @param {string} fontName - 字体名称
+ * @param {number} fileSize - 文件大小(bytes)
+ */
+function showCompressResult(downloadUrl, fontName, fileSize) {
+    if (resultModal && resultLink) {
+        showLinkModal(downloadUrl, fontName, fileSize);
+    }
 }
 
 /**
@@ -69,99 +236,78 @@ async function handleFormSubmit(e) {
     
     submitBtn.disabled = true;
     setLoading(true);
-    // updateProgress(0, true); // 进度条由uploadFileToBlobStore内部管理
-
-    let compressionProgressInterval = null;
-    let compressAbortController = null;
 
     try {
-        // 1. 上传文件到 Blob Store
+        // 1. 上传文件到存储服务
         console.log('开始上传字体文件...');
         const blobUrl = await uploadFileToBlobStore(fontFile);
         
-        // 文件上传到Blob成功后，显示消息并准备压缩
-        showSuccess('字体文件已成功上传到Blob Store，正在准备压缩...');
-        // 此时进度条应为100%，因为Blob上传已完成
+        // 文件上传成功后，显示消息并准备压缩
+        showSuccess('字体文件已成功上传，正在准备压缩...');
 
-        // 2. 准备发送到字体压缩API的数据 (只发送URL和文本)
+        // 获取选中的字符集ID
+        const selectedCharsetIds = Array.from(
+            document.querySelectorAll('.preset-checkbox:checked')
+        ).map(checkbox => checkbox.getAttribute('data-id'));
+
+        // 2. 准备发送到字体压缩API的数据
         const payload = {
-            blobUrl: blobUrl,
-            text: textContent
+            url: blobUrl,
+            text: textContent,
+            charsets: selectedCharsetIds // 添加字符集ID数组
         };
         
         console.log('发送到压缩API的数据:', payload);
-        setLoading(true); // 重新显示加载指示器，因为现在是压缩阶段
-        updateProgress(0, true); // 为压缩阶段重置进度条
-        compressionProgressInterval = simulateCompressionProgress(); // 为压缩过程模拟进度
-
-        // 创建AbortController用于请求超时控制
-        compressAbortController = new AbortController();
-        const timeoutId = setTimeout(() => {
-            if (compressAbortController) {
-                compressAbortController.abort();
-                console.error('压缩请求超时，已中断');
-            }
-        }, 45000); // 45秒超时
+        setLoading(true);
+        updateProgress(0, true);
 
         // 3. 调用压缩API
         console.log('开始调用压缩API...');
-        try {
-            const response = await fetch('/api/compress', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Cache-Control': 'no-cache',
-                    'Pragma': 'no-cache'
-                },
-                body: JSON.stringify(payload),
-                signal: compressAbortController.signal
-            });
-            
-            clearTimeout(timeoutId);
-            
-            if (compressionProgressInterval) {
-                clearInterval(compressionProgressInterval);
-                compressionProgressInterval = null;
+        const response = await fetch('/api/compress', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        updateProgress(100);
+        
+        // 4. 处理API响应
+        if (!response.ok) {
+            // 如果响应不是OK，尝试解析错误信息
+            let errorData;
+            try {
+                errorData = await response.json();
+            } catch (jsonError) {
+                // 如果响应体不是有效的JSON，则使用状态文本
+                throw new Error(`压缩服务错误: ${response.status} ${response.statusText}`);
             }
-            updateProgress(100); // 压缩完成，设置进度到100%
-            
-            // 4. 处理API响应
-            if (!response.ok) {
-                // 如果响应不是OK，尝试解析错误信息
-                let errorData;
-                try {
-                    errorData = await response.json();
-                } catch (jsonError) {
-                    // 如果响应体不是有效的JSON，则使用状态文本
-                    throw new Error(`压缩服务错误: ${response.status} ${response.statusText}`);
-                }
-                throw new Error(errorData.error || `压缩服务返回错误: ${response.status}`);
-            }
-            
-            // 5. 从响应头获取文件名
-            const contentDisposition = response.headers.get('content-disposition');
-            const filename = getFilenameFromContentDisposition(contentDisposition) || 'compressed-font.ttf';
-            
-            // 6. 将响应转换为blob并下载
-            console.log('开始下载压缩后的字体文件...');
-            const blobData = await response.blob();
-            downloadFile(blobData, filename);
-            
-            // 7. 显示成功消息
+            throw new Error(errorData.error || `压缩服务返回错误: ${response.status}`);
+        }
+        
+        // 5. 获取压缩结果
+        const result = await response.json();
+        
+        if (result.success && result.downloadUrl) {
+            // 6. 显示成功消息和下载链接
             const stats = {
                 originalSize: (fontFile.size / 1024).toFixed(1),
-                compressedSize: (blobData.size / 1024).toFixed(1),
-                ratio: (100 * (1 - blobData.size / fontFile.size)).toFixed(1)
+                compressedSize: (result.fileSize / 1024).toFixed(1),
+                ratio: (100 * (1 - result.fileSize / fontFile.size)).toFixed(1)
             };
             
-            showSuccess(`字体已成功压缩并下载！原始大小: ${stats.originalSize}KB, 压缩后: ${stats.compressedSize}KB (压缩率: ${stats.ratio}%)`);
-        } catch (fetchError) {
-            // 处理fetch错误
-            if (fetchError.name === 'AbortError') {
-                throw new Error('压缩请求超时，请尝试减少字符数量或使用较小的字体文件');
-            } else {
-                throw fetchError;
-            }
+            showSuccess(`字体已成功压缩！原始大小: ${stats.originalSize}KB, 压缩后: ${stats.compressedSize}KB (压缩率: ${stats.ratio}%)`);
+            
+            // 7. 自动下载文件
+            downloadFile(await (await fetch(result.downloadUrl)).blob(), result.fontName);
+            
+            // 8. 显示结果模态窗口
+            showCompressResult(result.downloadUrl, result.fontName, result.fileSize);
+        } else {
+            throw new Error('压缩失败，未返回有效的下载URL');
         }
     } catch (error) {
         console.error('处理过程中出错:', error);
@@ -178,40 +324,13 @@ async function handleFormSubmit(e) {
             errorMessage.includes('错误') ||
             errorMessage.includes('error');
         
-        showError(errorMessage, isImportantError); // 第二个参数为true时使用弹窗
+        showError(errorMessage, isImportantError);
     } finally {
-        // 清理资源
-        if (compressionProgressInterval) {
-            clearInterval(compressionProgressInterval);
-        }
-        if (compressAbortController) {
-            compressAbortController = null;
-        }
-        
         submitBtn.disabled = false;
         setLoading(false);
-        updateProgress(0, false); // 最终隐藏进度条
+        updateProgress(0, false);
     }
 }
-
-// 可选：为压缩过程模拟进度 (如果压缩过程也比较耗时)
-function simulateCompressionProgress() {
-    let progress = 0;
-    const maxProgress = 95;
-    return setInterval(() => {
-        if (progress < maxProgress) {
-            const increment = Math.max(0.5, (maxProgress - progress) / 10);
-            progress += increment;
-            updateProgress(Math.min(progress, maxProgress));
-        }
-    }, 200);
-}
-
-/**
- * 处理API错误 (此函数在新的流程中可能不太需要，因为错误处理更具体化了)
- * @param {Response} response - Fetch API响应对象
- */
-// async function handleApiError(response) { ... } // 可以考虑移除或重构
 
 /**
  * 处理文件选择变化
@@ -220,16 +339,12 @@ function handleFileSelection() {
     if (fileInput.files[0]) {
         const file = fileInput.files[0];
         
-        if (isFileSizeExceeded(file)) {
-            fileSizeWarning.style.display = 'block';
-        } else {
-            fileSizeWarning.style.display = 'none';
-        }
+        fileSizeWarning.style.display = 'none';
         
         if (!isValidFileType(file)) {
             showError('只支持TTF和OTF格式的字体文件');
         } else {
-            showError(''); // 清除之前的错误信息
+            showError('');
         }
     }
 }
@@ -244,23 +359,18 @@ function handleAddSelectedChars() {
     
     if (selectedIds.length === 0) return;
     
-    const result = addCharsetsToText(textInput.value, selectedIds);
+    // 不再将字符添加到文本框，而是仅显示提示
+    const addBtn = document.getElementById('addSelectedChars');
+    addBtn.textContent = "已选择✓";
+    addBtn.disabled = true;
     
-    if (result.hasNewChars) {
-        textInput.value = result.text;
-        textInput.focus();
-        
-        const addBtn = document.getElementById('addSelectedChars');
-        addBtn.textContent = "已添加✓";
-        addBtn.disabled = true;
-        
-        setTimeout(() => {
-            addBtn.textContent = "添加所选字符集";
-            addBtn.disabled = false;
-        }, 1000);
-    }
+    setTimeout(() => {
+        addBtn.textContent = "添加所选字符集";
+        addBtn.disabled = false;
+    }, 1000);
     
-    document.querySelectorAll('.preset-checkbox:checked').forEach(checkbox => {
-        checkbox.checked = false;
-    });
+    // 字符集保持选中状态，不再取消选择
+    // document.querySelectorAll('.preset-checkbox:checked').forEach(checkbox => {
+    //     checkbox.checked = false;
+    // });
 } 

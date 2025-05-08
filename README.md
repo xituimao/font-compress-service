@@ -1,66 +1,118 @@
-# 字体压缩服务 (Vercel 部署版)
+# 字体压缩服务
 
-一个使用 `fontmin` 实现的简单字体子集化（压缩）服务，可部署于 Vercel。
+一个简洁高效的字体子集化（压缩）服务，支持在线压缩、API调用和iframe嵌入。
 
-## 前提条件
+## 功能特点
 
--   Node.js (推荐 v18.x 或更高版本) 和 npm / yarn
--   [Vercel CLI](https://vercel.com/docs/cli) (全局安装: `npm install -g vercel`)
+- 支持大文件上传（最大100MB）
+- 使用 `fontmin` 进行专业的字体子集化处理
+- 用户友好的界面，支持常用字符集快速添加
+- 提供统一API接口和URL参数调用方式
+- 支持iframe嵌入和postMessage通信
 
 ## 项目结构
 
 ```
 .
 ├── api/
-│   └── compress.js   # Serverless 函数
-├── package.json      # 项目依赖与脚本
-├── vercel.json       # Vercel 部署配置
-└── README.md         # 本说明文档
+│   ├── compress.js     # 字体压缩处理函数
+│   └── upload-font.js  # 文件上传处理函数
+├── js/
+│   ├── main.js         # 主逻辑
+│   ├── upload.js       # 上传相关
+│   ├── charsets.js     # 字符集管理
+│   └── ui.js           # UI交互
+├── public/             # 静态资源
+│   ├── assets/
+│   └── css/
+├── index.html          # 主页面
+├── package.json        # 项目依赖与脚本
+├── vercel.json         # 部署配置
+└── README.md           # 本说明文档
 ```
 
-## 本地安装与运行
+## 使用方式
 
-1.  进入项目目录，执行 `npm install` (或 `yarn install`) 安装依赖。
-2.  使用 Vercel CLI 在本地运行服务进行测试：
-    ```bash
-    vercel dev
-    ```
-    服务通常会运行在 `http://localhost:3000`，压缩接口为 `http://localhost:3000/api/compress`。
+### 1. 网页直接使用
 
-## 部署到 Vercel
+访问服务地址，上传字体文件，输入需要保留的文字，点击"压缩字体"按钮。
 
-1.  登录 Vercel CLI: `vercel login`
-2.  在项目根目录下，执行部署命令:
-    ```bash
-    vercel
-    ```
-    或部署到生产环境：
-    ```bash
-    vercel --prod
-    ```
-    根据提示操作即可。Vercel 会自动检测 Node.js 项目并部署 Serverless 函数。
+### 2. URL参数调用
 
-## API 使用方法
+可以通过URL参数直接传入远程字体地址和需保留文字：
 
--   **接口地址**: `/api/compress` (相对于你的部署域名)
--   **请求方法**: `POST`
--   **请求类型**: `multipart/form-data`
--   **表单字段**:
-    -   `font`: 字体文件 (例如 `.ttf`, `.otf`)。
-    -   `text`: 需要包含在子集化字体中的文字字符串。
+```
+https://your-service.com/?fontUrl=https://example.com/font.ttf&text=需要保留的文字
+```
 
-**使用 cURL 测试示例:**
+### 3. API调用
 
 ```bash
-curl -X POST \
-  -F "font=@/path/to/your/font.ttf" \
-  -F "text=你好世界 Hello World 123" \
-  https://your-deployment-name.vercel.app/api/compress \
-  -o compressed_output_font.ttf
+curl -X POST https://your-service.com/api/compress \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/font.ttf", "text": "需要保留的文字"}'
 ```
 
-请将 `/path/to/your/font.ttf` 替换为你的字体文件实际路径，并将 `https://your-deployment-name.vercel.app` 替换为你的 Vercel 部署成功后的 URL。
+### 4. iframe嵌入
+
+```html
+<iframe src="https://your-service.com/" width="800" height="600"></iframe>
+<script>
+  window.addEventListener('message', (e) => {
+    const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+    if (data.type === 'font-compressed') {
+      console.log('压缩字体下载链接:', data.downloadUrl);
+    }
+  });
+</script>
+```
+
+## API 文档
+
+本服务提供两个主要API端点:
+
+### 1. 文件上传 API
+
+- **接口地址**: `/api/upload-font`
+- **请求方法**: `POST`
+- **功能**: 处理文件上传，返回上传令牌
+
+### 2. 字体压缩 API
+
+- **接口地址**: `/api/compress`
+- **请求方法**: `POST`
+- **请求类型**: `application/json`
+- **请求参数**:
+  ```json
+  {
+    "url": "https://example.com/font.ttf", // 字体文件URL (必填)
+    "text": "需要保留的字符" // 要保留的文字 (必填)
+  }
+  ```
+- **响应内容**:
+  ```json
+  {
+    "success": true,
+    "fontName": "compressed-font.ttf",
+    "fileSize": 12345, // 字节数
+    "downloadUrl": "https://example.com/compressed-font.ttf"
+  }
+  ```
+
+### 3. postMessage 接口
+
+当在iframe中使用时，压缩完成后会向父窗口发送消息：
+
+```json
+{
+  "type": "font-compressed",
+  "downloadUrl": "https://example.com/compressed-font.ttf",
+  "fontName": "compressed-font.ttf",
+  "fileSize": 12345 // 字节数
+}
+```
 
 ## 注意事项
-*   `fontmin` 及其依赖的一些二进制包（如 ttf2woff）在 Serverless 环境中可能存在兼容性或路径问题。如果部署后运行出错，请检查 Vercel 的函数日志获取详细错误信息。
-*   Vercel 的 Hobby 免费套餐对函数执行时长和内存有限制。复杂或大型字体的处理可能超出限制。 
+
+- 处理大型字体或大量字符时可能会遇到超时问题
+- 推荐使用Chrome或Firefox浏览器获得最佳体验 

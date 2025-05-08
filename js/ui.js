@@ -118,16 +118,23 @@ function createModalIfNeeded() {
  */
 export function showError(message, useModal = false) {
     if (!elements.errorMessage) initUI();
-    elements.errorMessage.textContent = message;
-    showElement(elements.errorMessage);
-    hideElement(elements.successMessage);
-
-    // 记录到控制台
-    console.error('[ERROR]', message);
-
-    if (useModal && message) {
-        showModal(message, 'error');
+    
+    if (message && message.trim() !== '') {
+        elements.errorMessage.textContent = message;
+        showElement(elements.errorMessage);
+        // 记录到控制台
+        console.error('[ERROR]', message);
+        
+        if (useModal) {
+            showModal(message, 'error');
+        }
+    } else {
+        // 无内容时隐藏错误提示框
+        hideElement(elements.errorMessage);
     }
+    
+    // 始终隐藏成功消息框
+    hideElement(elements.successMessage);
 }
 
 /**
@@ -137,16 +144,23 @@ export function showError(message, useModal = false) {
  */
 export function showSuccess(message, useModal = false) {
     if (!elements.successMessage) initUI();
-    elements.successMessage.textContent = message;
-    showElement(elements.successMessage);
-    hideElement(elements.errorMessage);
-
-    // 记录到控制台
-    console.log('[SUCCESS]', message);
     
-    if (useModal && message) {
-        showModal(message, 'success');
+    if (message && message.trim() !== '') {
+        elements.successMessage.textContent = message;
+        showElement(elements.successMessage);
+        // 记录到控制台
+        console.log('[SUCCESS]', message);
+        
+        if (useModal) {
+            showModal(message, 'success');
+        }
+    } else {
+        // 无内容时隐藏成功提示框
+        hideElement(elements.successMessage);
     }
+    
+    // 始终隐藏错误消息框
+    hideElement(elements.errorMessage);
 }
 
 /**
@@ -192,6 +206,35 @@ export function showModal(message, type = 'error') {
 
     // 显示模态框
     elements.modalContainer.style.display = 'block';
+}
+
+/**
+ * 显示链接模态窗口
+ * @param {string} url - 要显示的下载链接
+ * @param {string} filename - 文件名
+ * @param {number} fileSize - 文件大小(字节)
+ */
+export function showLinkModal(url, filename, fileSize) {
+    const resultModal = document.getElementById('resultModal');
+    if (!resultModal) return;
+    
+    const resultLink = document.getElementById('resultLink');
+    if (resultLink) {
+        resultLink.value = url;
+    }
+    
+    const fileSizeKB = (fileSize / 1024).toFixed(1);
+    const modalTitle = document.querySelector('#resultModal .modal-content h3');
+    if (modalTitle) {
+        modalTitle.textContent = `压缩完成 - ${filename}`;
+    }
+    
+    const modalMsg = document.querySelector('#resultModal .modal-content p');
+    if (modalMsg) {
+        modalMsg.textContent = `字体压缩已完成 (${fileSizeKB}KB)，您可以：`;
+    }
+    
+    resultModal.style.display = 'block';
 }
 
 /**
