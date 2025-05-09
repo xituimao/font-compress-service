@@ -40,8 +40,10 @@
       href="css/styles.css" />
   </head>
   <body>
-    <h1>字体压缩神器 V8</h1>
-    <p>只保留指定文字的字形，大幅减小字体文件</p>
+    <div class="header">
+      <h1>字体压缩神器 V8</h1>
+      <p>只保留指定文字的字形，大幅减小字体文件</p>
+    </div>
 
     <div class="container">
       <form id="compressForm">
@@ -82,74 +84,11 @@
             name="text"
             placeholder="输入需要保留的文字，如网站上的所有文字内容..."></textarea>
 
-          <div class="preset-chars">
-            <h4>常用字符集：</h4>
-            <div class="preset-options">
-              <div class="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="chinese-numbers"
-                  class="preset-checkbox"
-                  data-id="cn" />
-                <label for="chinese-numbers">中文数字</label>
-              </div>
-              <div class="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="arabic-numbers"
-                  class="preset-checkbox"
-                  data-id="an" />
-                <label for="arabic-numbers">阿拉伯数字</label>
-              </div>
-              <div class="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="english-letters"
-                  class="preset-checkbox"
-                  data-id="el" />
-                <label for="english-letters">英文字母</label>
-              </div>
-              <div class="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="chinese-punctuation"
-                  class="preset-checkbox"
-                  data-id="cp" />
-                <label for="chinese-punctuation">中文标点</label>
-              </div>
-              <div class="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="english-punctuation"
-                  class="preset-checkbox"
-                  data-id="ep" />
-                <label for="english-punctuation">英文符号</label>
-              </div>
-              <div class="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="common-chinese"
-                  class="preset-checkbox"
-                  data-id="cc" />
-                <label for="common-chinese">常用汉字500</label>
-              </div>
-              <div class="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="chinese-1000"
-                  class="preset-checkbox"
-                  data-id="cn1000" />
-                <label for="chinese-1000">常用汉字1000+</label>
-              </div>
-              <div class="checkbox-item">
-                <input
-                  type="checkbox"
-                  id="tech-symbols"
-                  class="preset-checkbox"
-                  data-id="tech" />
-                <label for="tech-symbols">技术符号</label>
-              </div>
-            </div>
+          <div
+            class="preset-chars"
+            id="charset-container">
+            <!-- 字符集选择区域将通过JS动态生成 -->
+            <div class="loading-indicator">正在加载字符集...</div>
           </div>
         </div>
 
@@ -218,17 +157,7 @@
         </li>
         <li>
           <code>charsets</code>: 要使用的内置字符集ID数组 (可选,
-          <code>text</code> 和 <code>charsets</code> 至少提供一个)。可用ID包括:
-          <ul>
-            <li><code>cn</code>: 中文数字</li>
-            <li><code>an</code>: 阿拉伯数字</li>
-            <li><code>el</code>: 英文字母</li>
-            <li><code>cp</code>: 中文标点</li>
-            <li><code>ep</code>: 英文符号</li>
-            <li><code>cc</code>: 常用汉字500</li>
-            <li><code>cn1000</code>: 常用汉字1000+</li>
-            <li><code>tech</code>: 技术符号</li>
-          </ul>
+          <code>text</code> 和 <code>charsets</code> 至少提供一个)
         </li>
       </ul>
       <p>响应内容 (JSON):</p>
@@ -241,24 +170,27 @@
 }</pre
       >
 
-      <h3>postMessage 接口</h3>
-      <p>当在iframe中使用时，压缩完成后会向父窗口发送消息：</p>
+      <h3>字符集API</h3>
+      <p><code>GET</code> <code>/api/get-charsets</code></p>
+      <p>获取所有可用的字符集列表:</p>
       <pre class="code-block">
 {
-  "type": "font-compressed",
-  "downloadUrl": "https://...",
-  "fontName": "compressed-font.ttf",
-  "fileSize": 字节数
+  "success": true,
+  "charsets": {
+    "standard": ["latin", "latin-ext", "cyrillic", "greek", ...],
+    "combined": ["basic", "web_safe", "european", ...]
+  }
 }</pre
       >
-      <p>使用示例：</p>
+      <p>获取特定字符集的字符内容:</p>
+      <p><code>GET</code> <code>/api/get-charsets?name=latin</code></p>
       <pre class="code-block">
-window.addEventListener('message', (e) => {
-  const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-  if (data.type === 'font-compressed') {
-    console.log('下载链接:', data.downloadUrl);
-  }
-});</pre
+{
+  "success": true,
+  "name": "latin",
+  "characters": "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmn...",
+  "length": 224
+}</pre
       >
     </div>
 

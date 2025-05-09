@@ -14,6 +14,7 @@ import {
   showLinkModal,
 } from "./ui.js";
 import { uploadFileToBlobStore, isValidFileType } from "./upload.js"; // uploadFileToBlobStore 现在使用@vercel/blob/client
+import { generateCharsetSelectors, getSelectedCharsets } from "./charsets.js"; // 导入字符集模块
 
 // DOM就绪后执行初始化
 document.addEventListener("DOMContentLoaded", init);
@@ -42,6 +43,12 @@ function init() {
   copyLinkBtn = document.getElementById("copyLink");
   downloadBtn = document.getElementById("downloadFont");
   closeBtn = document.querySelector(".close");
+
+  // 加载字符集选择界面
+  generateCharsetSelectors("charset-container").catch(error => {
+    console.error("加载字符集失败:", error);
+    showError("加载字符集失败，请刷新页面重试");
+  });
 
   // 绑定事件处理程序
   bindEvents();
@@ -113,7 +120,7 @@ function checkUrlParameters() {
   const urlParams = new URLSearchParams(window.location.search);
   const fontUrl = urlParams.get("fontUrl");
   const text = urlParams.get("text");
-  const charsetIdsParam = urlParams.get("charsets"); // 新增：获取charsets参数
+  const charsetIdsParam = urlParams.get("charsets"); // 获取charsets参数
 
   if (fontUrl) {
     // 如果有URL参数，执行远程字体处理
@@ -123,13 +130,26 @@ function checkUrlParameters() {
         .split(",")
         .map((id) => id.trim())
         .filter((id) => id);
-      // 可以在这里预选 checkboxes，如果页面上有对应的元素
-      charsetIds.forEach((id) => {
-        const checkbox = document.querySelector(
-          `.preset-checkbox[data-id="${id}"]`
-        );
-        if (checkbox) checkbox.checked = true;
-      });
+      
+      // 等待字符集选择器初始化完成后再选中复选框
+      // 由于字符集是动态加载的，需要等待一段时间或使用事件通知
+      const waitForCharsetSelectors = () => {
+        if (document.querySelectorAll('.preset-checkbox').length > 0) {
+          // 字符集选择器已加载，选中指定字符集
+          charsetIds.forEach((id) => {
+            const checkbox = document.querySelector(
+              `.preset-checkbox[data-id="${id}"]`
+            );
+            if (checkbox) checkbox.checked = true;
+          });
+        } else {
+          // 字符集选择器尚未加载，继续等待
+          setTimeout(waitForCharsetSelectors, 100);
+        }
+      };
+      
+      // 开始等待字符集选择器
+      waitForCharsetSelectors();
     }
 
     if (text || charsetIds.length > 0) {
@@ -277,10 +297,8 @@ async function handleFormSubmit(e) {
 
     console.log("上传成功，获得Blob URL:", blobUrl);
 
-    // 获取选中的字符集ID
-    const selectedCharsetIds = Array.from(
-      document.querySelectorAll(".preset-checkbox:checked")
-    ).map((checkbox) => checkbox.getAttribute("data-id"));
+    // 使用字符集模块获取选中的字符集ID
+    const selectedCharsetIds = getSelectedCharsets();
 
     // 2. 准备发送到字体压缩API的数据
     const payload = {

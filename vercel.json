@@ -23,6 +23,10 @@
     {
       "src": "/api/upload-font",
       "dest": "/api/upload-font.js"
+    },
+    {
+      "src": "/api/get-charsets",
+      "dest": "/api/get-charsets.js"
     }
   ]
 }
