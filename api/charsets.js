@@ -55,7 +55,7 @@ const COMBINED_CHARSETS = {
   basic: DIGITS + LATIN_BASIC + PUNCTUATION_BASIC,
   web_safe: LATIN,
   european: LATIN + LATIN_EXT,
-  "pan-european": LATIN + LATIN_EXT + CYRILLIC + GREEK
+  pan_european: LATIN + LATIN_EXT + CYRILLIC + GREEK
 };
 
 /**

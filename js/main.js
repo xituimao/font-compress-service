@@ -170,7 +170,7 @@ function checkUrlParameters() {
 async function processRemoteFont(fontUrl, text, charsetIds = []) {
   showError("");
   submitBtn.disabled = true;
-  setLoading(true);
+  setLoading(true, "正在压缩远程字体...");
 
   try {
     // 1. 准备发送到字体压缩API的数据
@@ -184,6 +184,7 @@ async function processRemoteFont(fontUrl, text, charsetIds = []) {
 
     // 2. 调用字体压缩API
     console.log("开始调用字体压缩API...");
+    updateProgress(10, true, "正在处理远程字体...");
     const response = await fetch("/api/compress", {
       method: "POST",
       headers: {
@@ -278,7 +279,8 @@ async function handleFormSubmit(e) {
   }
 
   submitBtn.disabled = true;
-  setLoading(true);
+  // 设置加载状态，显示上传文本
+  setLoading(true, "正在上传文件...");
 
   try {
     // 1. 上传文件到存储服务
@@ -308,8 +310,10 @@ async function handleFormSubmit(e) {
     };
 
     console.log("发送到压缩API的数据:", payload);
-    setLoading(true);
-    updateProgress(0, true);
+    // 更新状态文本为压缩中
+    setLoading(true, "正在压缩字体...");
+    // 重置进度条，显示压缩进度
+    updateProgress(0, true, "正在压缩字体...");
 
     // 3. 调用压缩API
     console.log("开始调用压缩API...");
@@ -323,7 +327,7 @@ async function handleFormSubmit(e) {
       body: JSON.stringify(payload),
     });
 
-    updateProgress(100);
+    updateProgress(100, true, "压缩完成！");
 
     // 4. 处理API响应
     if (!response.ok) {

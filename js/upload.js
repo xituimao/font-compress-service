@@ -62,7 +62,7 @@ function generateSafeName(originalName) {
  */
 export async function uploadFileToBlobStore(file) {
   try {
-    updateProgress(0, true);
+    updateProgress(0, true, "正在上传文件...");
     console.log(`开始上传字体: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
     const envPrefix = getEnvironmentPrefix();
@@ -77,7 +77,7 @@ export async function uploadFileToBlobStore(file) {
         multipart: true,
         onUploadProgress: (progress) => {
           const percent = (progress.loaded / progress.total) * 100;
-          updateProgress(percent);
+          updateProgress(percent, true, "正在上传文件...");
         },
       }
     );
@@ -98,7 +98,7 @@ export async function uploadFileToBlobStore(file) {
       throw new Error("上传成功但未获得有效的URL");
     }
 
-    updateProgress(100);
+    updateProgress(100, true, "上传完成！");
     return newBlob.url;
   } catch (error) {
     console.error("上传失败:", error);

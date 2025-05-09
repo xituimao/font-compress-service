@@ -121,7 +121,7 @@ const CHARSET_DISPLAY_NAMES = {
   basic: "基础组合字符集",
   web_safe: "网页安全字符集",
   european: "欧洲语言字符集",
-  "pan-european": "泛欧洲全面字符集",
+  pan_european: "泛欧洲全面字符集",
   
   // 兼容旧字符集ID (仅用于向后兼容)
   // 新代码不应该使用这些ID

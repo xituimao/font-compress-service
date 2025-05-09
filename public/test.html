@@ -48,6 +48,30 @@
             margin-top: 20px; 
             border-radius: 4px;
         }
+        /* 示例按钮样式 */
+        .url-example, .text-example {
+            background-color: #f0f0f0;
+            color: #333;
+            font-size: 0.85em;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .url-example:hover, .text-example:hover {
+            background-color: #e0e0e0;
+            border-color: #ccc;
+        }
+        /* 不同类型按钮的颜色区分 */
+        .url-example {
+            background-color: #e8f4f8;
+            border-color: #b8d4e8;
+        }
+        .text-example {
+            background-color: #f0f8e8;
+            border-color: #d0e8b8;
+        }
     </style>
 </head>
 <body>
@@ -57,17 +81,38 @@
 
         <label for="fontUrl">字体文件URL:</label>
         <input type="url" id="fontUrl" name="fontUrl" placeholder="例如: https://example.com/font.ttf">
+        
+        <div style="margin-bottom: 15px;">
+            <p style="margin: 5px 0; font-size: 0.9em; color: #666;">示例字体URL:</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <button type="button" class="url-example" data-url="https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxK.woff2">Roboto Regular</button>
+                <button type="button" class="url-example" data-url="https://fonts.gstatic.com/s/sourcesanspro/v21/6xK3dSBYKcSV-LCoeQqfX1RYOo3qOK7l.woff2">Source Sans Pro</button>
+                <button type="button" class="url-example" data-url="https://fonts.gstatic.com/s/notoserif/v21/ga6Iaw1J5X9T9RW6j9bNfFcWaA.woff2">Noto Serif</button>
+                <button type="button" class="url-example" data-url="https://fonts.gstatic.com/s/notosanssc/v26/k3kXo84MPvpLmixcA63oeALhLOCT-xWNm8Hqd37g1OkDRZe7lR4sg1IzSy-MNbE.woff2">Noto Sans SC</button>
+            </div>
+        </div>
 
         <label for="customText">自定义文本 (可选):</label>
         <textarea id="customText" name="customText" placeholder="请输入需要保留的文字..."></textarea>
+        
+        <div style="margin-bottom: 15px;">
+            <p style="margin: 5px 0; font-size: 0.9em; color: #666;">示例文本:</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                <button type="button" class="text-example" data-text="ABCDEFGHIJKLMNOPQRSTUVWXYZ">英文大写字母</button>
+                <button type="button" class="text-example" data-text="abcdefghijklmnopqrstuvwxyz">英文小写字母</button>
+                <button type="button" class="text-example" data-text="0123456789">数字</button>
+                <button type="button" class="text-example" data-text="你好世界，这是一个字体压缩工具">中文示例</button>
+                <button type="button" class="text-example" data-text="こんにちは世界、これはフォント圧縮ツールです">日文示例</button>
+            </div>
+        </div>
 
         <label>选择预定义字符集 (可选):</label>
         <div class="charset-group">
-            <div><input type="checkbox" id="charset-cn" name="charsets" value="cn"> <label for="charset-cn">中文常用 (cn)</label></div>
-            <div><input type="checkbox" id="charset-an" name="charsets" value="an"> <label for="charset-an">阿拉伯数字 (an)</label></div>
-            <div><input type="checkbox" id="charset-el" name="charsets" value="el"> <label for="charset-el">英文字母 (el)</label></div>
-            <div><input type="checkbox" id="charset-cp" name="charsets" value="cp"> <label for="charset-cp">中文标点 (cp)</label></div>
-            <div><input type="checkbox" id="charset-ep" name="charsets" value="ep"> <label for="charset-ep">英文符号 (ep)</label></div>
+            <h4 style="margin: 10px 0 5px; color: #666;">常用测试字符集:</h4>
+            <div><input type="checkbox" id="charset-digits" name="charsets" value="digits"> <label for="charset-digits">数字 (digits)</label></div>
+            <div><input type="checkbox" id="charset-latin_basic" name="charsets" value="latin_basic"> <label for="charset-latin_basic">基本拉丁字母 (latin_basic)</label></div>
+            <div><input type="checkbox" id="charset-chinese_common" name="charsets" value="chinese_common"> <label for="charset-chinese_common">常用汉字扩展 (chinese_common)</label></div>
+            <div><input type="checkbox" id="charset-basic" name="charsets" value="basic"> <label for="charset-basic">基础组合 (basic)</label></div>
         </div>
 
         <button id="submitBtn" style="margin-top: 20px;">开始测试</button>
@@ -113,6 +158,47 @@
             }, 0);
 
             document.getElementById('messageDisplay').textContent = `尝试加载: ${targetAppUrl}\n等待来自 ${new URL(targetAppUrl, window.location.origin).origin} 的消息...`;
+        });
+
+        // 添加示例URL按钮点击事件
+        document.querySelectorAll('.url-example').forEach(button => {
+            button.addEventListener('click', function() {
+                const url = this.getAttribute('data-url');
+                document.getElementById('fontUrl').value = url;
+                
+                // 根据文本内容自动选择对应的字符集
+                if (url.includes('notosanssc')) {
+                    // 如果是中文字体，预选中文字符集
+                    document.getElementById('charset-chinese_common').checked = true;
+                } else {
+                    // 否则预选英文字符集和数字
+                    document.getElementById('charset-latin_basic').checked = true;
+                    document.getElementById('charset-digits').checked = true;
+                }
+            });
+        });
+
+        // 添加示例文本按钮点击事件
+        document.querySelectorAll('.text-example').forEach(button => {
+            button.addEventListener('click', function() {
+                const text = this.getAttribute('data-text');
+                const textArea = document.getElementById('customText');
+                
+                if (textArea.value && textArea.value.trim() !== '') {
+                    textArea.value += '\n' + text;
+                } else {
+                    textArea.value = text;
+                }
+                
+                // 根据文本内容自动选择对应的字符集
+                if (text.match(/[\u4e00-\u9fa5]/)) {
+                    document.getElementById('charset-chinese_common').checked = true;
+                } else if (text.match(/[A-Za-z]/)) {
+                    document.getElementById('charset-latin_basic').checked = true;
+                } else if (text.match(/[0-9]/)) {
+                    document.getElementById('charset-digits').checked = true;
+                }
+            });
         });
 
         window.addEventListener('message', (event) => {

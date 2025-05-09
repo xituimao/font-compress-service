@@ -279,10 +279,20 @@ button:disabled {
   display: none;
 }
 
+/* 统一进度指示器样式 */
+.progress-container {
+  margin-top: 15px;
+  display: none;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
 .progress-bar {
-  height: 10px;
+  height: 8px;
   background-color: #f0f0f0;
-  border-radius: 5px;
+  border-radius: 4px;
   overflow: hidden;
   margin-bottom: 5px;
 }
@@ -298,6 +308,24 @@ button:disabled {
   font-size: 12px;
   color: #666;
   text-align: right;
+  margin-bottom: 15px;
+}
+
+.progress-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  font-size: 14px;
+  margin: 5px 0;
+}
+
+.progress-container .spinner {
+  display: inline-block;
+  margin: 0 8px 0 0;
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
 }
 
 /* 模态窗口样式 */

@@ -61,9 +61,17 @@
             style="display: none">
             支持大文件上传（最大100MB）。
           </div>
+          <!-- 统一的进度指示器组件 -->
           <div
-            id="uploadProgress"
-            class="upload-progress-container">
+            id="progressContainer"
+            class="progress-container"
+            style="display: none">
+            <div
+              id="progressStatus"
+              class="progress-status">
+              <div id="progressSpinner" class="spinner"></div>
+              <span>正在上传文件...</span>
+            </div>
             <div class="progress-bar">
               <div
                 id="progressBarFill"
@@ -98,13 +106,6 @@
           压缩字体
         </button>
       </form>
-
-      <div
-        id="loading"
-        class="loading">
-        <div class="spinner"></div>
-        <p>正在处理中，请稍候...</p>
-      </div>
 
       <div
         id="errorMessage"

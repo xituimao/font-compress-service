@@ -7,10 +7,11 @@
 let elements = {
     errorMessage: null,
     successMessage: null,
-    loading: null,
-    uploadProgress: null,
+    progressContainer: null,
     progressBarFill: null,
     progressText: null,
+    progressStatus: null,
+    progressSpinner: null,
     modalContainer: null,
     modalContent: null,
     modalClose: null
@@ -24,17 +25,17 @@ export function initUI() {
     elements = {
         errorMessage: document.getElementById('errorMessage'),
         successMessage: document.getElementById('successMessage'),
-        loading: document.getElementById('loading'),
-        uploadProgress: document.getElementById('uploadProgress'),
+        progressContainer: document.getElementById('progressContainer'),
         progressBarFill: document.getElementById('progressBarFill'),
-        progressText: document.getElementById('progressText')
+        progressText: document.getElementById('progressText'),
+        progressStatus: document.getElementById('progressStatus'),
+        progressSpinner: document.getElementById('progressSpinner')
     };
     
     // 确保所有UI元素都隐藏
     hideElement(elements.errorMessage);
     hideElement(elements.successMessage);
-    hideElement(elements.loading);
-    hideElement(elements.uploadProgress);
+    hideElement(elements.progressContainer);
 
     // 创建模态弹窗
     createModalIfNeeded();
@@ -238,13 +239,28 @@ export function showLinkModal(url, filename, fileSize) {
 /**
  * 显示/隐藏加载指示器
  * @param {boolean} isLoading - 是否显示加载指示器
+ * @param {string} statusText - 加载状态文本
  */
-export function setLoading(isLoading) {
-    if (!elements.loading) initUI();
+export function setLoading(isLoading, statusText = "正在处理中，请稍候...") {
+    if (!elements.progressContainer) initUI();
+    
     if (isLoading) {
-        showElement(elements.loading);
+        // 查找或创建span元素
+        let statusSpan = elements.progressStatus.querySelector('span');
+        if (!statusSpan) {
+            // 如果不存在span，创建一个
+            statusSpan = document.createElement('span');
+            elements.progressStatus.appendChild(statusSpan);
+        }
+        statusSpan.textContent = statusText;
+        
+        showElement(elements.progressContainer);
+        // 显示加载中的旋转动画，隐藏确定进度
+        elements.progressSpinner.style.display = 'inline-block';
+        elements.progressBarFill.style.width = '0%';
+        elements.progressText.textContent = '';
     } else {
-        hideElement(elements.loading);
+        hideElement(elements.progressContainer);
     }
 }
 
@@ -278,14 +294,15 @@ export function hideElement(element) {
  * 更新上传进度显示
  * @param {number} percent - 进度百分比 (0-100)
  * @param {boolean} show - 是否显示进度条
+ * @param {string} statusText - 可选的状态文本，未提供则保持当前文本
  */
-export function updateProgress(percent, show = true) {
-    if (!elements.uploadProgress) initUI();
+export function updateProgress(percent, show = true, statusText = null) {
+    if (!elements.progressContainer) initUI();
     
     if (show) {
-        showElement(elements.uploadProgress);
+        showElement(elements.progressContainer);
     } else {
-        hideElement(elements.uploadProgress);
+        hideElement(elements.progressContainer);
         return;
     }
     
@@ -295,6 +312,26 @@ export function updateProgress(percent, show = true) {
     // 更新进度条
     elements.progressBarFill.style.width = `${progress}%`;
     elements.progressText.textContent = `${Math.round(progress)}%`;
+    
+    // 如果提供了状态文本则更新
+    if (statusText !== null) {
+        // 查找或创建span元素
+        let statusSpan = elements.progressStatus.querySelector('span');
+        if (!statusSpan) {
+            // 如果不存在span，创建一个
+            statusSpan = document.createElement('span');
+            elements.progressStatus.appendChild(statusSpan);
+        }
+        statusSpan.textContent = statusText;
+    }
+    
+    // 根据进度决定是否显示旋转器
+    if (progress < 100) {
+        elements.progressSpinner.style.display = 'inline-block';
+    } else {
+        // 进度100%时可以隐藏旋转器
+        elements.progressSpinner.style.display = 'none';
+    }
     
     // 如果进度已完成，设置为绿色
     if (progress >= 100) {
