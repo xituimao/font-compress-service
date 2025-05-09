@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>测试URL字体压缩</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; margin: 20px; background-color: #f4f7f9; color: #333; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1, h2 { color: #2c3e50; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        input[type="url"], input[type="text"], textarea { 
+            width: calc(100% - 22px); 
+            padding: 10px; 
+            margin-bottom: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 4px; 
+            font-size: 1em;
+        }
+        textarea { min-height: 80px; }
+        .charset-group div { margin-bottom: 5px; }
+        .charset-group label { display: inline-block; font-weight: normal; margin-left: 5px; }
+        input[type="checkbox"] { vertical-align: middle; }
+        button { 
+            background-color: #3498db; 
+            color: white; 
+            padding: 10px 15px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        button:hover { background-color: #2980b9; }
+        #messageDisplay { 
+            margin-top: 20px; 
+            border: 1px solid #e0e0e0; 
+            padding: 15px; 
+            background: #f9f9f9; 
+            min-height: 100px; 
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        iframe { 
+            width: 100%; 
+            height: 450px; 
+            border: 1px solid #ddd; 
+            margin-top: 20px; 
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>测试URL字体压缩</h1>
+        <p>此页面用于通过URL参数调用主压缩服务 (<code>index.html</code>)，并监听 <code>postMessage</code> 事件。</p>
+
+        <label for="fontUrl">字体文件URL:</label>
+        <input type="url" id="fontUrl" name="fontUrl" placeholder="例如: https://example.com/font.ttf">
+
+        <label for="customText">自定义文本 (可选):</label>
+        <textarea id="customText" name="customText" placeholder="请输入需要保留的文字..."></textarea>
+
+        <label>选择预定义字符集 (可选):</label>
+        <div class="charset-group">
+            <div><input type="checkbox" id="charset-cn" name="charsets" value="cn"> <label for="charset-cn">中文常用 (cn)</label></div>
+            <div><input type="checkbox" id="charset-an" name="charsets" value="an"> <label for="charset-an">阿拉伯数字 (an)</label></div>
+            <div><input type="checkbox" id="charset-el" name="charsets" value="el"> <label for="charset-el">英文字母 (el)</label></div>
+            <div><input type="checkbox" id="charset-cp" name="charsets" value="cp"> <label for="charset-cp">中文标点 (cp)</label></div>
+            <div><input type="checkbox" id="charset-ep" name="charsets" value="ep"> <label for="charset-ep">英文符号 (ep)</label></div>
+        </div>
+
+        <button id="submitBtn" style="margin-top: 20px;">开始测试</button>
+
+        <h2>来自主页面的 PostMessage 事件:</h2>
+        <pre id="messageDisplay">等待消息...</pre>
+
+        <h2>主页面 (嵌入式):</h2>
+        <iframe id="targetFrame" title="嵌入的主页面"></iframe>
+    </div>
+
+    <script>
+        document.getElementById('submitBtn').addEventListener('click', () => {
+            const fontUrl = document.getElementById('fontUrl').value;
+            const customText = document.getElementById('customText').value;
+            const selectedCharsets = Array.from(document.querySelectorAll('input[name="charsets"]:checked'))
+                                        .map(cb => cb.value);
+
+            if (!fontUrl) {
+                alert('请输入字体文件URL！');
+                return;
+            }
+
+            const params = new URLSearchParams();
+            params.append('fontUrl', fontUrl);
+
+            if (customText.trim()) {
+                params.append('text', customText.trim());
+            }
+            if (selectedCharsets.length > 0) {
+                params.append('charsets', selectedCharsets.join(','));
+            }
+
+            // Vercel通常会将 public/index.html 映射到 /
+            const targetAppUrl = `/?${params.toString()}`;
+            // 如果需要明确指向 index.html，可以使用:
+            // const targetAppUrl = `/index.html?${params.toString()}`;
+            
+            const iframe = document.getElementById('targetFrame');
+            iframe.src = 'about:blank'; // 清空iframe，防止重复加载相同内容时不触发load
+            setTimeout(() => { // 确保DOM更新后再设置src
+                 iframe.src = targetAppUrl;
+            }, 0);
+
+            document.getElementById('messageDisplay').textContent = `尝试加载: ${targetAppUrl}\n等待来自 ${new URL(targetAppUrl, window.location.origin).origin} 的消息...`;
+        });
+
+        window.addEventListener('message', (event) => {
+            const messageDisplay = document.getElementById('messageDisplay');
+            let displayContent = `收到消息:\n`;
+            displayContent += `来源 (Origin): ${event.origin}\n`;
+            
+            // 为了安全，实际应用中应校验 event.origin
+            // For example: if (event.origin !== window.location.origin) {
+            //    messageDisplay.textContent += "警告: 消息来源不可信，已忽略。";
+            //    return;
+            // }
+
+            try {
+                const dataObject = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                displayContent += `数据 (Data): ${JSON.stringify(dataObject, null, 2)}\n`;
+
+                if (dataObject && dataObject.type === 'fontCompressionSuccess') {
+                    console.log('主页面报告字体压缩成功:', dataObject);
+                } else if (dataObject && dataObject.type === 'fontCompressionError') {
+                    console.error('主页面报告字体压缩失败:', dataObject);
+                } else if (dataObject && dataObject.type === 'fontProcessingError') { // 假设有这个类型的错误
+                     console.error('主页面报告字体处理错误:', dataObject);
+                }
+
+            } catch (e) {
+                displayContent += `原始数据 (非JSON): ${event.data}\n`;
+                console.warn("收到的 postMessage 数据不是有效的JSON字符串:", event.data, e);
+            }
+            
+            messageDisplay.textContent = displayContent;
+        }, false);
+    </script>
+</body>
+</html> 

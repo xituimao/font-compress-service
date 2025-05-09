@@ -63,6 +63,27 @@ input[type="file"] {
     border: 1px solid #ddd;
     border-radius: 4px;
     background-color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+input[type="file"]:hover {
+    background-color: #f0f0f0;
+}
+input[type="file"]:active {
+    background-color: #d6d6d6;
+}
+input[type="file"]::file-selector-button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 0.3em 0.5em;
+    border-radius: 0.3em;
+}
+input[type="file"]::file-selector-button:hover {
+    background-color: #2980b9;
+}
+input[type="file"]::file-selector-button:active {
+    background-color: #2980b9;
 }
 
 .file-size-warning {
@@ -182,7 +203,7 @@ button:disabled {
 .preset-chars {
     margin-top: 15px;
     padding: 10px;
-    background-color: #f9f9f9;
+    background-color: rgba(0,0,0,0.1);
     border-radius: 5px;
 }
 
@@ -196,7 +217,6 @@ button:disabled {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 10px;
 }
 
 .checkbox-item {

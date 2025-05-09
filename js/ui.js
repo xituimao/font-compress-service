@@ -85,7 +85,6 @@ function createModalIfNeeded() {
     closeBtn.className = 'close';
     closeBtn.innerHTML = '&times;';
     closeBtn.style.color = '#aaa';
-    closeBtn.style.float = 'right';
     closeBtn.style.fontSize = '28px';
     closeBtn.style.fontWeight = 'bold';
     closeBtn.style.cursor = 'pointer';
@@ -194,7 +193,6 @@ export function showModal(message, type = 'error') {
     button.style.border = 'none';
     button.style.borderRadius = '4px';
     button.style.cursor = 'pointer';
-    button.style.float = 'right';
     button.onclick = () => {
         elements.modalContainer.style.display = 'none';
     };
@@ -226,7 +224,7 @@ export function showLinkModal(url, filename, fileSize) {
     const fileSizeKB = (fileSize / 1024).toFixed(1);
     const modalTitle = document.querySelector('#resultModal .modal-content h3');
     if (modalTitle) {
-        modalTitle.textContent = `压缩完成 - ${filename}`;
+        modalTitle.textContent = `压缩完成 - ${filename || '压缩字体'}`;
     }
     
     const modalMsg = document.querySelector('#resultModal .modal-content p');

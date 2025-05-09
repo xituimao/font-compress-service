@@ -17,7 +17,6 @@ alwaysApply: false
 2. **文本输入和字符集选择**:
    - 用户在文本框中输入需要保留的文字
    - 用户可以通过 [js/charsets.js](mdc:js/charsets.js) 提供的预设字符集快速添加常用字符
-   - `handleAddSelectedChars` 函数处理字符集的添加
 
 3. **表单提交和上传**:
    - 用户点击"压缩字体"按钮

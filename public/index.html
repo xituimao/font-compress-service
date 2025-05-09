@@ -1,155 +1,269 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0" />
     <title>字体压缩神器 V8</title>
-    <meta name="description" content="字体压缩神器 V8，只保留指定文字的字形，大幅减小字体文件">
-    <meta name="keywords" content="字体压缩, 字体压缩神器, 字体压缩工具, 字体压缩服务, 字体压缩软件, 字体压缩工具下载, 字体压缩工具推荐, 字体压缩工具免费, 字体压缩工具在线, 字体压缩工具使用, 字体压缩工具教程, 字体压缩工具下载, 字体压缩工具推荐, 字体压缩工具免费, 字体压缩工具在线, 字体压缩工具使用, 字体压缩工具教程">
-    <meta name="author" content="V8">
+    <meta
+      name="description"
+      content="字体压缩神器 V8，只保留指定文字的字形，大幅减小字体文件" />
+    <meta
+      name="keywords"
+      content="字体压缩, 字体压缩神器, 字体压缩工具, 字体压缩服务, 字体压缩软件, 字体压缩工具下载, 字体压缩工具推荐, 字体压缩工具免费, 字体压缩工具在线, 字体压缩工具使用, 字体压缩工具教程, 字体压缩工具下载, 字体压缩工具推荐, 字体压缩工具免费, 字体压缩工具在线, 字体压缩工具使用, 字体压缩工具教程" />
+    <meta
+      name="author"
+      content="V8" />
     <!-- SEO优化 -->
-    <meta name="robots" content="index, follow">
-    <meta name="googlebot" content="index, follow">
-    <meta name="bingbot" content="index, follow">
-    <meta name="alexa" content="index, follow">
-    <meta name="yandex" content="index, follow">
+    <meta
+      name="robots"
+      content="index, follow" />
+    <meta
+      name="googlebot"
+      content="index, follow" />
+    <meta
+      name="bingbot"
+      content="index, follow" />
+    <meta
+      name="alexa"
+      content="index, follow" />
+    <meta
+      name="yandex"
+      content="index, follow" />
     <!-- 主题 -->
-    <meta name="theme-color" content="#3498db">
-    <link rel="stylesheet" href="css/styles.css">
-</head>
-<body>
+    <meta
+      name="theme-color"
+      content="#3498db" />
+    <link
+      rel="stylesheet"
+      href="css/styles.css" />
+  </head>
+  <body>
     <h1>字体压缩神器 V8</h1>
     <p>只保留指定文字的字形，大幅减小字体文件</p>
-    
-    <div class="container">
-        <form id="compressForm">
-            <div class="form-group">
-                <label for="fontFile">上传字体文件（TTF/OTF格式）：</label>
-                <input type="file" id="fontFile" name="font" accept=".ttf,.otf" required>
-                <div id="fileSizeWarning" class="file-size-warning" style="display: none;">
-                    支持大文件上传（最大100MB）。
-                </div>
-                <div id="uploadProgress" class="upload-progress-container">
-                    <div class="progress-bar">
-                        <div id="progressBarFill" class="progress-bar-fill"></div>
-                    </div>
-                    <div id="progressText" class="progress-text">0%</div>
-                </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="textInput">需要保留的文字：</label>
-                <textarea id="textInput" name="text" placeholder="输入需要保留的文字，如网站上的所有文字内容..."></textarea>
-                
-                <div class="preset-chars">
-                    <h4>常用字符集（可多选）：</h4>
-                    <div class="preset-options">
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="chinese-numbers" class="preset-checkbox" data-id="cn">
-                            <label for="chinese-numbers">中文数字</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="arabic-numbers" class="preset-checkbox" data-id="an">
-                            <label for="arabic-numbers">阿拉伯数字</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="english-letters" class="preset-checkbox" data-id="el">
-                            <label for="english-letters">英文字母</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="chinese-punctuation" class="preset-checkbox" data-id="cp">
-                            <label for="chinese-punctuation">中文标点</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="english-punctuation" class="preset-checkbox" data-id="ep">
-                            <label for="english-punctuation">英文符号</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="common-chinese" class="preset-checkbox" data-id="cc">
-                            <label for="common-chinese">常用汉字500</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="chinese-1000" class="preset-checkbox" data-id="cn1000">
-                            <label for="chinese-1000">常用汉字1000+</label>
-                        </div>
-                        <div class="checkbox-item">
-                            <input type="checkbox" id="tech-symbols" class="preset-checkbox" data-id="tech">
-                            <label for="tech-symbols">技术符号</label>
-                        </div>
-                    </div>
-                    <button type="button" id="addSelectedChars" class="add-chars-btn">选择字符集</button>
-                    <div class="charset-hint">选中的字符集将在服务端自动添加，无需手动添加到文本框</div>
-                </div>
-            </div>
-            
-            <button type="submit" id="submitBtn">压缩字体</button>
-        </form>
-        
-        <div id="loading" class="loading">
-            <div class="spinner"></div>
-            <p>正在处理中，请稍候...</p>
-        </div>
-        
-        <div id="successMessage" class="success-message"></div>
-        <div id="errorMessage" class="error-message"></div>
 
-        <!-- 添加结果模态窗口 -->
-        <div id="resultModal" class="modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <h3>压缩完成</h3>
-                <p>字体压缩已完成，您可以：</p>
-                <div class="link-container">
-                    <input type="text" id="resultLink" readonly>
-                    <button id="copyLink">复制链接</button>
-                </div>
-                <button id="downloadFont">下载字体</button>
+    <div class="container">
+      <form id="compressForm">
+        <div class="form-group">
+          <label for="fontFile">上传字体文件（TTF/OTF格式）：</label>
+          <input
+            type="file"
+            id="fontFile"
+            name="font"
+            accept=".ttf,.otf"
+            required />
+          <div
+            id="fileSizeWarning"
+            class="file-size-warning"
+            style="display: none">
+            支持大文件上传（最大100MB）。
+          </div>
+          <div
+            id="uploadProgress"
+            class="upload-progress-container">
+            <div class="progress-bar">
+              <div
+                id="progressBarFill"
+                class="progress-bar-fill"></div>
             </div>
+            <div
+              id="progressText"
+              class="progress-text">
+              0%
+            </div>
+          </div>
         </div>
+
+        <div class="form-group">
+          <label for="textInput">需要保留的文字：</label>
+          <textarea
+            id="textInput"
+            name="text"
+            placeholder="输入需要保留的文字，如网站上的所有文字内容..."></textarea>
+
+          <div class="preset-chars">
+            <h4>常用字符集：</h4>
+            <div class="preset-options">
+              <div class="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="chinese-numbers"
+                  class="preset-checkbox"
+                  data-id="cn" />
+                <label for="chinese-numbers">中文数字</label>
+              </div>
+              <div class="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="arabic-numbers"
+                  class="preset-checkbox"
+                  data-id="an" />
+                <label for="arabic-numbers">阿拉伯数字</label>
+              </div>
+              <div class="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="english-letters"
+                  class="preset-checkbox"
+                  data-id="el" />
+                <label for="english-letters">英文字母</label>
+              </div>
+              <div class="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="chinese-punctuation"
+                  class="preset-checkbox"
+                  data-id="cp" />
+                <label for="chinese-punctuation">中文标点</label>
+              </div>
+              <div class="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="english-punctuation"
+                  class="preset-checkbox"
+                  data-id="ep" />
+                <label for="english-punctuation">英文符号</label>
+              </div>
+              <div class="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="common-chinese"
+                  class="preset-checkbox"
+                  data-id="cc" />
+                <label for="common-chinese">常用汉字500</label>
+              </div>
+              <div class="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="chinese-1000"
+                  class="preset-checkbox"
+                  data-id="cn1000" />
+                <label for="chinese-1000">常用汉字1000+</label>
+              </div>
+              <div class="checkbox-item">
+                <input
+                  type="checkbox"
+                  id="tech-symbols"
+                  class="preset-checkbox"
+                  data-id="tech" />
+                <label for="tech-symbols">技术符号</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          id="submitBtn">
+          压缩字体
+        </button>
+      </form>
+
+      <div
+        id="loading"
+        class="loading">
+        <div class="spinner"></div>
+        <p>正在处理中，请稍候...</p>
+      </div>
+
+      <div
+        id="errorMessage"
+        class="error-message"></div>
+
+      <!-- 添加结果模态窗口 -->
+      <div
+        id="resultModal"
+        class="modal">
+        <div class="modal-content">
+          <span class="close">&times;</span>
+
+          <div
+            id="successMessage"
+            class="success-message"></div>
+          <p>字体压缩已完成，您可以：</p>
+          <div class="link-container">
+            <textarea
+              id="resultLink"
+              readonly></textarea>
+            <button id="copyLink">复制链接</button>
+          </div>
+          <button id="downloadFont">下载字体</button>
+        </div>
+      </div>
     </div>
-    
+
     <div class="tips">
-        <h3>使用提示</h3>
-        <ul>
-            <li>支持TTF和OTF格式，最大100MB</li>
-            <li>URL参数调用：<code>?fontUrl=https://example.com/font.ttf&text=需保留文字</code></li>
-            <li>处理成功后自动下载、展示链接，并发送postMessage通知</li>
-        </ul>
+      <h3>使用提示</h3>
+      <ul>
+        <li>支持TTF和OTF格式，最大100MB</li>
+        <li>
+          URL方式调用：<code
+            >[当前网址]?fontUrl=https://example.com/font.ttf&text=需保留文字&charsets=cn,an</code
+          >
+        </li>
+        <li>处理成功后自动下载、展示链接，并发送postMessage通知</li>
+      </ul>
     </div>
 
     <div class="api-docs">
-        <h3>API 接口</h3>
-        <p><code>POST</code> <code>/api/compress</code></p>
-        <p>请求参数 (JSON):</p>
-        <ul>
-            <li><code>url</code>: 字体文件URL，支持任意公网URL (必填)</li>
-            <li><code>text</code>: 需要保留的文字 (必填)</li>
-        </ul>
-        <p>响应内容 (JSON):</p>
-        <pre class="code-block">{
+      <h3>API 接口</h3>
+      <p><code>POST</code> <code>/api/compress</code></p>
+      <p>请求参数 (JSON):</p>
+      <ul>
+        <li><code>url</code>: 字体文件URL，支持任意公网URL (必填)</li>
+        <li>
+          <code>text</code>: 需要保留的文字 (可选, <code>text</code> 和
+          <code>charsets</code> 至少提供一个)
+        </li>
+        <li>
+          <code>charsets</code>: 要使用的内置字符集ID数组 (可选,
+          <code>text</code> 和 <code>charsets</code> 至少提供一个)。可用ID包括:
+          <ul>
+            <li><code>cn</code>: 中文数字</li>
+            <li><code>an</code>: 阿拉伯数字</li>
+            <li><code>el</code>: 英文字母</li>
+            <li><code>cp</code>: 中文标点</li>
+            <li><code>ep</code>: 英文符号</li>
+            <li><code>cc</code>: 常用汉字500</li>
+            <li><code>cn1000</code>: 常用汉字1000+</li>
+            <li><code>tech</code>: 技术符号</li>
+          </ul>
+        </li>
+      </ul>
+      <p>响应内容 (JSON):</p>
+      <pre class="code-block">
+{
   "success": true,
   "fontName": "compressed-font.ttf",
   "fileSize": 字节数,
   "downloadUrl": "https://..."
-}</pre>
+}</pre
+      >
 
-        <h3>postMessage 接口</h3>
-        <p>当在iframe中使用时，压缩完成后会向父窗口发送消息：</p>
-        <pre class="code-block">{
+      <h3>postMessage 接口</h3>
+      <p>当在iframe中使用时，压缩完成后会向父窗口发送消息：</p>
+      <pre class="code-block">
+{
   "type": "font-compressed",
   "downloadUrl": "https://...",
   "fontName": "compressed-font.ttf",
   "fileSize": 字节数
-}</pre>
-        <p>使用示例：</p>
-        <pre class="code-block">window.addEventListener('message', (e) => {
+}</pre
+      >
+      <p>使用示例：</p>
+      <pre class="code-block">
+window.addEventListener('message', (e) => {
   const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
   if (data.type === 'font-compressed') {
     console.log('下载链接:', data.downloadUrl);
   }
-});</pre>
+});</pre
+      >
     </div>
 
-    <script type="module" src="assets/bundle.js"></script>
-</body>
-</html> 
+    <script
+      type="module"
+      src="assets/bundle.js"></script>
+  </body>
+</html>

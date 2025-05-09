@@ -32,5 +32,4 @@ alwaysApply: false
 
 - **文件大小检查**: [js/upload.js](mdc:js/upload.js) 的 `isFileSizeExceeded` 函数提供文件大小验证
 - **文件类型验证**: [js/upload.js](mdc:js/upload.js) 的 `isValidFileType` 函数确保上传的是支持的字体格式
-- **字符集快速添加**: [js/main.js](mdc:js/main.js) 的 `handleAddSelectedChars` 函数使用户可以快速添加常用字符集
 - **进度模拟**: 在缺乏实时进度反馈的情况下，使用 `simulateUploadProgress` 和 `simulateCompressionProgress` 函数提供视觉反馈

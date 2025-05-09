@@ -30,6 +30,12 @@
 ├── vercel.json         # 部署配置
 └── README.md           # 本说明文档
 ```
+## 本地运行
+
+```bash
+npm install
+npm start
+```
 
 ## 使用方式
 
@@ -39,11 +45,16 @@
 
 ### 2. URL参数调用
 
-可以通过URL参数直接传入远程字体地址和需保留文字：
+可以通过URL参数直接传入远程字体地址和需保留文字及字符集：
 
 ```
-https://your-service.com/?fontUrl=https://example.com/font.ttf&text=需要保留的文字
+https://your-service.com/?fontUrl=https://example.com/font.ttf&text=需要保留的文字&charsets=cn,an,el
 ```
+
+说明：
+- `fontUrl`：字体文件的URL (必填)。
+- `text`：需要保留的文字 (可选, `text` 和 `charsets` 至少提供一个)。
+- `charsets`：逗号分隔的内置字符集ID列表 (可选, `text` 和 `charsets` 至少提供一个)。例如 `cn,an,cc`。
 
 ### 3. API调用
 
@@ -86,9 +97,19 @@ curl -X POST https://your-service.com/api/compress \
   ```json
   {
     "url": "https://example.com/font.ttf", // 字体文件URL (必填)
-    "text": "需要保留的字符" // 要保留的文字 (必填)
+    "text": "需要保留的字符", // 要保留的文字 (可选, text 和 charsets 至少提供一个)
+    "charsets": ["cn", "an"] // 要使用的内置字符集ID数组 (可选, text 和 charsets 至少提供一个)
   }
   ```
+- **内置字符集ID说明**:
+  - `cn`: 中文数字
+  - `an`: 阿拉伯数字
+  - `el`: 英文字母
+  - `cp`: 中文标点
+  - `ep`: 英文符号
+  - `cc`: 常用汉字500
+  - `cn1000`: 常用汉字1000+
+  - `tech`: 技术符号
 - **响应内容**:
   ```json
   {
