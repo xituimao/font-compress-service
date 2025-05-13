@@ -7,7 +7,7 @@
       "config": { "distDir": "public" }
     },
     {
-      "src": "api/**/*.js",
+      "src": "api/index.js",
       "use": "@vercel/node",
       "config": {
         "maxDuration": 60,
@@ -17,16 +17,8 @@
   ],
   "routes": [
     {
-      "src": "/api/compress",
-      "dest": "/api/compress.js"
-    },
-    {
-      "src": "/api/upload-font",
-      "dest": "/api/upload-font.js"
-    },
-    {
-      "src": "/api/get-charsets",
-      "dest": "/api/get-charsets.js"
+      "src": "/api/(.*)",
+      "dest": "/api/index.js"
     }
   ]
 }
